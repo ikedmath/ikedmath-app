@@ -1,7 +1,4 @@
-export const config = {
-  runtime: 'edge',
-};
-
+// خزان السوارت (Backend Secret Vault)
 const API_KEYS = [
   "AIzaSyBPz8vXwVUG-XEZhp-Tgl7DgbJNVBzasbU",
   "AIzaSyA0mtRY0r3V_4YgbysODF74ZF96d8BDdKI",
@@ -21,35 +18,57 @@ const API_KEYS = [
 
 const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
 
-export default async function handler(req) {
+// دالة السيرفر (Node.js Standard)
+module.exports = async (req, res) => {
+  // 1. السماح للواجهة بالاتصال (CORS Fix)
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  // إلا كان غير فحص (OPTIONS)، جاوب بـ OK وسكت
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   try {
-    const { contents } = await req.json();
-    const randomKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)];
+    // 2. قراءة الرسالة من الواجهة
+    const { contents } = req.body;
     
+    // 3. اختيار ساروت عشوائي
+    const randomKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)];
+
+    // 4. محاولة الاتصال بـ Google (تجريب الموديلات بالترتيب)
     for (const model of MODELS) {
       try {
-        const response = await fetch(
+        const googleResponse = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${randomKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents })
+            body: JSON.stringify({ 
+              contents,
+              generationConfig: { maxOutputTokens: 1000 }
+            })
           }
         );
 
-        if (response.ok) {
-          const data = await response.json();
-          return new Response(JSON.stringify(data), {
-            headers: { 'content-type': 'application/json' }
-          });
+        if (googleResponse.ok) {
+          const data = await googleResponse.json();
+          // نجحنا! صيفط الجواب للواجهة
+          return res.status(200).json(data);
         }
-      } catch (e) {
-        console.error(`Model ${model} failed, trying next...`);
+      } catch (innerError) {
+        console.error(`Model ${model} skipped.`);
       }
     }
 
-    return new Response(JSON.stringify({ error: "All models failed" }), { status: 500 });
+    // إلا فشلو كاملين
+    return res.status(503).json({ error: "All models are busy." });
+
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    // خطأ فادح فالسيرفر
+    return res.status(500).json({ error: error.message });
   }
-}
+};
