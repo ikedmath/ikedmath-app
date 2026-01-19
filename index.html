@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ikedmath - The Unstoppable (Engineer Edition)</title>
+    <title>Ikedmath - The Unstoppable (Hydra Edition)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         window.MathJax = {
@@ -81,21 +81,11 @@
                     <stop offset="100%" style="stop-color:#d97706" />
                 </linearGradient>
             </defs>
-            <g transform="translate(50,50)">
-                <path d="M-40 -40 L40 -40 L40 40 L-40 40 Z" class="circuit-lines" />
-                <path d="M0 -56 L56 0 L0 56 L-56 0 Z" class="circuit-lines" />
-                <line x1="-56" y1="0" x2="56" y2="0" class="circuit-lines" />
-                <line x1="0" y1="-56" x2="0" y2="56" class="circuit-lines" />
-                <circle cx="-40" cy="-40" r="2" class="circuit-node" />
-                <circle cx="40" cy="-40" r="2" class="circuit-node" />
-                <circle cx="40" cy="40" r="2" class="circuit-node" />
-                <circle cx="-40" cy="40" r="2" class="circuit-node" />
-            </g>
-            <path class="gold-root" d="M 18 55 L 35 75 L 55 25 L 88 25" />
+            <path class="gold-root" d="M 18 55 L 35 75 L 55 25 L 88 25" fill="none" stroke="url(#gold-gradient)" stroke-width="14" stroke-linecap="square" />
             <circle cx="72" cy="60" r="7.5" class="gold-dot" />
         </svg>
         <h2 style="margin-top:20px; font-weight:900; color:white; font-size:24px;">IKEDMATH</h2>
-        <div style="font-size:10px; color:#4ade80; opacity:0.8; margin-top:5px;">INITIALIZING NEURAL CORE...</div>
+        <div style="font-size:10px; color:#4ade80; opacity:0.8; margin-top:5px;">INITIALIZING HYDRA CORE...</div>
     </div>
 
     <div class="app-frame" id="appFrame">
@@ -159,7 +149,7 @@
                 <button onclick="goHome()" style="background:none; border:none; color:white; font-size:20px;"><i class="fas fa-arrow-right"></i></button>
                 <div>
                     <div style="font-weight:bold;">Iked (عشيرك الذكي)</div>
-                    <div style="font-size:10px; color:#4ade80;" id="statusText">● متصل (Vercel Secure Tunnel)</div>
+                    <div style="font-size:10px; color:#4ade80;" id="statusText">● متصل (Multi-Proxy)</div>
                 </div>
             </div>
             
@@ -196,10 +186,9 @@
 
     <script>
         // ---------------------------------------------------------
-        // 🕵️‍♂️ THE SENIOR ENGINEER SYSTEM (Architecture Final)
+        // 🕵️‍♂️ THE HYDRA ENGINE (Multi-Proxy System)
         // ---------------------------------------------------------
         
-        // 1. خزان المفاتيح (14 ساروت)
         const API_KEYS = [
             "AIzaSyBPz8vXwVUG-XEZhp-Tgl7DgbJNVBzasbU",
             "AIzaSyA0mtRY0r3V_4YgbysODF74ZF96d8BDdKI",
@@ -217,20 +206,16 @@
             "AIzaSyBwkd8WXx_T4IBv-PTSlaSJDMuxuHWJV_g"
         ];
 
-        // 2. خزان الموديلات
-        const MODELS = [
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite-preview-02-05"
-        ];
-
-        // 3. الحل النهائي: نفق Vercel (مباشر وبدون وسيط عمومي)
-        // 🔥 FIX: Direct Vercel Rewrite
-        const API_BASE = "/api/gemini/"; 
-        
+        const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
         let currentKeyIndex = Math.floor(Math.random() * API_KEYS.length);
 
-        // 4. الدماغ (System Prompt)
+        // 🔥 THE MAGIC LIST: 3 GATEWAYS (If one fails, next takes over)
+        const PROXIES = [
+            "https://corsproxy.io/?",           // Plan A: Fast
+            "https://thingproxy.freeboard.io/fetch/", // Plan B: Reliable
+            ""                                  // Plan C: Direct (For lucky days)
+        ];
+
         const SYSTEM_PROMPT = `
             Role: You are Iked, a Moroccan Baccalaureate Math Tutor/Buddy.
             User: Reda (رضى), a 2nd-year Bac Libre (Sci. Math) student.
@@ -241,12 +226,10 @@
 
         let chatHistory = []; 
         let currentXP = 4200; 
-        
         let currentImage = null;
         let isListening = false;
         let recognition;
 
-        // --- INIT ---
         window.onload = () => {
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
@@ -265,11 +248,10 @@
             document.getElementById('homeView').classList.add('hidden');
             document.getElementById('chatView').classList.remove('hidden');
             const list = document.getElementById('chatList');
-            
             if(chatHistory.length === 0) {
                 list.innerHTML = '';
                 if(mode === 'grader') appendMsg("👋 أهلاً رضى! صور ليا الورقة باش نصحح ليك المنهجية.", 'ai');
-                else appendMsg("واش أ رضى! أنا واجد (2.5 Flash). فين وقفنا المرة الفايتة؟ ولا نبداو جديد؟ 🦾", 'ai');
+                else appendMsg("واش أ رضى! أنا واجد (Hydra Core). فين وقفنا المرة الفايتة؟ 🦾", 'ai');
             } else {
                 list.innerHTML = '';
                 renderHistoryToChat();
@@ -293,7 +275,6 @@
             }
         }
 
-        // --- VOICE ---
         function setupVoice() {
             if ('webkitSpeechRecognition' in window) {
                 recognition = new webkitSpeechRecognition();
@@ -308,7 +289,6 @@
 
         function toggleVoice() { if(!recognition) return; isListening ? recognition.stop() : recognition.start(); }
 
-        // --- VISION & CHAT ---
         function handleFile(input) {
             const file = input.files[0];
             if(!file) return;
@@ -339,49 +319,63 @@
             if(window.MathJax) MathJax.typesetPromise([div]);
         }
 
-        // --- 🕵️‍♂️ THE CORE ENGINE (FIXED) ---
+        // --- 🔥 THE HYDRA REQUEST LOGIC (REDUNDANCY) ---
         async function generateContentWithRetry(payload) {
+            // Loop through API KEYS
             for (let k = 0; k < API_KEYS.length; k++) {
                 let keyIndex = (currentKeyIndex + k) % API_KEYS.length;
                 let apiKey = API_KEYS[keyIndex];
                 
-                for (let m = 0; m < MODELS.length; m++) {
-                    let model = MODELS[m];
+                // Loop through PROXIES (This is the fix)
+                for (let p = 0; p < PROXIES.length; p++) {
+                    let proxy = PROXIES[p];
                     
-                    // 🔥 FIX: Direct URL Construction through Vercel Tunnel (No Proxy needed)
-                    // Old: PROXY + encode(googleUrl) -> Failed
-                    // New: /api/gemini/v1beta/models/... -> Success via vercel.json
-                    let finalUrl = `${API_BASE}v1beta/models/${model}:generateContent?key=${apiKey}`;
-                    
-                    try {
-                        console.log(`Attempt: Key[${keyIndex}] + Model[${model}]`);
-                        const response = await fetch(finalUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
+                    // Loop through MODELS
+                    for (let m = 0; m < MODELS.length; m++) {
+                        let model = MODELS[m];
+                        let googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                        
+                        // Construct Final URL based on proxy
+                        let finalUrl = "";
+                        if(proxy === "") finalUrl = googleUrl; // Direct
+                        else finalUrl = proxy + encodeURIComponent(googleUrl);
+                        
+                        try {
+                            console.log(`Trying: Proxy[${p}] + Key[${keyIndex}] + Model[${model}]`);
+                            
+                            // Adjust headers based on proxy
+                            let headers = { 'Content-Type': 'application/json' };
+                            if(proxy.includes("thingproxy")) {
+                                // Thingproxy sometimes needs simpler headers
+                            }
 
-                        if (response.ok) {
-                            currentKeyIndex = keyIndex;
-                            return await response.json();
+                            const response = await fetch(finalUrl, {
+                                method: 'POST',
+                                headers: headers,
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (response.ok) {
+                                currentKeyIndex = keyIndex; // Remember working key
+                                return await response.json();
+                            }
+                            
+                            if (response.status === 429) {
+                                console.warn("Quota Exceeded on Key, switching...");
+                                break; // Break model loop to switch key
+                            }
+                        } catch (err) {
+                            console.error("Connection Failed (Retrying next proxy...)", err);
                         }
-                        if (response.status === 429) {
-                            console.warn("Quota Exceeded on Key, switching...");
-                            break; 
-                        }
-                    } catch (err) {
-                        console.error("Network Error (Retrying...)", err);
                     }
                 }
             }
-            throw new Error("All Keys Failed. Check Internet.");
+            throw new Error("All Gateways Failed. Check Internet.");
         }
 
-        // --- MAIN CHAT FUNCTION ---
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
-            
             if(!text && !currentImage) return;
 
             let userContent = text;
@@ -398,20 +392,14 @@
             }
             userParts.push({ text: text || "Analyze this" });
 
-            chatHistory.push({
-                role: "user",
-                parts: userParts
-            });
-            
+            chatHistory.push({ role: "user", parts: userParts });
             saveState();
 
             const loaderId = 'load-' + Date.now();
-            document.getElementById('chatList').insertAdjacentHTML('beforeend', `<div id="${loaderId}" class="msg msg-ai"><i class="fas fa-circle-notch fa-spin"></i> Iked (2.5) كيحلل...</div>`);
+            document.getElementById('chatList').insertAdjacentHTML('beforeend', `<div id="${loaderId}" class="msg msg-ai"><i class="fas fa-circle-notch fa-spin"></i> Iked كيجرب الاتصال...</div>`);
 
             const payload = {
-                system_instruction: {
-                    parts: [{ text: SYSTEM_PROMPT }]
-                },
+                system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
                 contents: chatHistory
             };
 
@@ -421,87 +409,38 @@
 
                 if(data.candidates && data.candidates[0].content) {
                     let aiText = data.candidates[0].content.parts[0].text;
-                    
                     appendMsg(marked.parse(aiText), 'ai');
-
-                    chatHistory.push({
-                        role: "model",
-                        parts: [{ text: aiText }]
-                    });
-                    
-                    currentXP += 50; 
-                    updateXP();
-                    saveState();
-
+                    chatHistory.push({ role: "model", parts: [{ text: aiText }] });
+                    currentXP += 50; updateXP(); saveState();
                 } else {
-                    appendMsg("⚠️ Iked ما لقاش جواب (الجواب خاوي). عاود صيفط.", 'ai');
-                    chatHistory.pop(); 
-                    saveState();
+                    appendMsg("⚠️ Iked ما لقاش جواب. عاود صيفط.", 'ai');
+                    chatHistory.pop(); saveState();
                 }
             } catch (e) {
                 document.getElementById(loaderId).remove();
-                appendMsg("❌ فشل الاتصال بالسيرفر. تأكد أنك متصل بالإنترنت.", 'ai');
-                chatHistory.pop();
-                saveState();
+                appendMsg("❌ فشل الاتصال بجميع القناطر. جرب طفي الويفي وشعلو.", 'ai');
+                chatHistory.pop(); saveState();
             }
         }
 
-        // --- PERSISTENCE ---
-        function saveState() {
-            try {
-                localStorage.setItem('iked_history_v1', JSON.stringify(chatHistory));
-                localStorage.setItem('iked_xp_v1', currentXP);
-            } catch(e) { console.error("Save Failed (Storage Full?):", e); }
-        }
-
-        function loadState() {
-            try {
-                const savedXP = localStorage.getItem('iked_xp_v1');
-                if(savedXP) currentXP = parseInt(savedXP);
-                updateXP();
-
-                const savedChat = localStorage.getItem('iked_history_v1');
-                if(savedChat) {
-                    chatHistory = JSON.parse(savedChat);
-                }
-            } catch(e) { console.error("Load Failed:", e); }
-        }
-
-        function updateXP() {
-            const el = document.getElementById('xpDisplay');
-            if(el) {
-                el.style.color = '#4ade80';
-                el.innerText = currentXP;
-                setTimeout(() => el.style.color = 'white', 500);
-            }
-        }
-
+        function saveState() { try { localStorage.setItem('iked_history_v1', JSON.stringify(chatHistory)); localStorage.setItem('iked_xp_v1', currentXP); } catch(e) {} }
+        function loadState() { try { const savedXP = localStorage.getItem('iked_xp_v1'); if(savedXP) currentXP = parseInt(savedXP); updateXP(); const savedChat = localStorage.getItem('iked_history_v1'); if(savedChat) chatHistory = JSON.parse(savedChat); } catch(e) {} }
+        function updateXP() { const el = document.getElementById('xpDisplay'); if(el) el.innerText = currentXP; }
         function renderHistoryToChat() {
             chatHistory.forEach(turn => {
                 let htmlContent = "";
                 if(turn.role === 'user') {
                     const imgPart = turn.parts.find(p => p.inline_data);
-                    if(imgPart) {
-                        htmlContent += `<img src="data:image/jpeg;base64,${imgPart.inline_data.data}" style="max-width:100%; border-radius:10px;"><br>`;
-                    }
+                    if(imgPart) htmlContent += `<img src="data:image/jpeg;base64,${imgPart.inline_data.data}" style="max-width:100%; border-radius:10px;"><br>`;
                     const textPart = turn.parts.find(p => p.text);
                     if(textPart) htmlContent += textPart.text;
                     appendMsg(htmlContent, 'user');
-                } 
-                else if(turn.role === 'model') {
-                    const text = turn.parts[0].text;
-                    appendMsg(marked.parse(text), 'ai');
+                } else if(turn.role === 'model') {
+                    appendMsg(marked.parse(turn.parts[0].text), 'ai');
                 }
             });
         }
-        
-        function resetApp() {
-            if(confirm("واش باغي تمسح الذاكرة و تبدا من 0؟ (XP غيمشي)")) {
-                localStorage.removeItem('iked_history_v1');
-                localStorage.removeItem('iked_xp_v1');
-                location.reload();
-            }
-        }
+        function resetApp() { if(confirm("واش باغي تمسح الذاكرة؟")) { localStorage.removeItem('iked_history_v1'); localStorage.removeItem('iked_xp_v1'); location.reload(); } }
     </script>
 </body>
 </html>
