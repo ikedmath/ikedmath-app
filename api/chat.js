@@ -1,31 +1,17 @@
-// خزان السوارت (نفسهم ما قسناهمش)
-const API_KEYS = [
-  "AIzaSyBPz8vXwVUG-XEZhp-Tgl7DgbJNVBzasbU",
-  "AIzaSyA0mtRY0r3V_4YgbysODF74ZF96d8BDdKI",
-  "AIzaSyCfdmvpmblXCLECHH7FaDYLPDFbEKIvXLU",
-  "AIzaSyBjA2NpNvi3evBYvPgDUxBdsUnz1rXiuK8",
-  "AIzaSyAsk6lafFuqW5F6C3KWjAR6GczqfFB1WjU",
-  "AIzaSyBmmCbuU2GjEl4Vtpp0ptyNL9Mu3GMRjcc",
-  "AIzaSyD0Q5wdMko3fRPudDfUZV0Y_OcRlySlN3Y",
-  "AIzaSyAN0U3UtB3oZZPUjCFr7qxgd9H2vKvva-A",
-  "AIzaSyAz6BaeOnSgE1eaW4Ywfhkt5BggcIk463g",
-  "AIzaSyDaRAVDYonItLkhQipP7IEhcrRM_q3RQdU",
-  "AIzaSyBzfphr62SGax09-wvKM4DbOACKarqYFtg",
-  "AIzaSyCxohCSJDmmpQHnxZcTnAkUr9WjFinBOEo",
-  "AIzaSyBjtH15LRaIzM4JnFw70Ha_qm8Lzx0fOME",
-  "AIzaSyBwkd8WXx_T4IBv-PTSlaSJDMuxuHWJV_g"
-];
+// ✅ الساروت الجديد (اللي جربنا وخدم)
+const API_KEY = "AIzaSyCSg5Mh3OaC7zjvJy9tNNhRheR4TvWQcPY";
 
-// ✅ هادو هوما الموديلات الحقيقية والموجودة حالياً
-const MODELS = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"];
+// ✅ الموديل "الجوكر" (الوحيد اللي قبل يخدم ليك)
+const MODEL_NAME = "gemini-flash-latest";
 
 module.exports = async (req, res) => {
-  // 1. السماح للواجهة بالاتصال (CORS)
+  // 1. إعدادات CORS (باش الموقع يقدر يتصل بالسيرفر)
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
+  // إلا كان المتصفح غير كيطل (Pre-flight check)
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -33,38 +19,38 @@ module.exports = async (req, res) => {
 
   try {
     const { contents } = req.body;
-    const randomKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)];
-
-    // تجريب الموديلات بالترتيب
-    for (const model of MODELS) {
-      try {
-        // كنستعملو fetch ديال Node.js (متوفرة ف Vercel)
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${randomKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              contents,
-              generationConfig: { maxOutputTokens: 1000 }
-            })
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          return res.status(200).json(data);
-        } else {
-          console.log(`Model ${model} error: ${await response.text()}`);
-        }
-      } catch (e) {
-        console.log(`Model ${model} failed locally: ${e.message}`);
+    
+    // 2. الاتصال بـ Google باستعمال "الجوكر"
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          contents,
+          // كنزيدو هاد الإعدادات باش نتفاداو المشاكل
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
+        })
       }
+    );
+
+    const data = await response.json();
+
+    // 3. الرد
+    if (response.ok) {
+      return res.status(200).json(data);
+    } else {
+      console.error("Google Error:", data);
+      return res.status(500).json({ error: data.error?.message || "Unknown Error" });
     }
 
-    return res.status(503).json({ error: "All models failed to respond" });
-
   } catch (error) {
+    console.error("Server Error:", error);
     return res.status(500).json({ error: error.message });
   }
 };
