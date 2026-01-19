@@ -1,44 +1,60 @@
 export const config = {
-    runtime: 'edge',
+  runtime: 'edge',
 };
 
+// خزان السوارت (محمي داخل السيرفر)
+const API_KEYS = [
+  "AIzaSyBPz8vXwVUG-XEZhp-Tgl7DgbJNVBzasbU",
+  "AIzaSyA0mtRY0r3V_4YgbysODF74ZF96d8BDdKI",
+  "AIzaSyCfdmvpmblXCLECHH7FaDYLPDFbEKIvXLU",
+  "AIzaSyBjA2NpNvi3evBYvPgDUxBdsUnz1rXiuK8",
+  "AIzaSyAsk6lafFuqW5F6C3KWjAR6GczqfFB1WjU",
+  "AIzaSyBmmCbuU2GjEl4Vtpp0ptyNL9Mu3GMRjcc",
+  "AIzaSyD0Q5wdMko3fRPudDfUZV0Y_OcRlySlN3Y",
+  "AIzaSyAN0U3UtB3oZZPUjCFr7qxgd9H2vKvva-A",
+  "AIzaSyAz6BaeOnSgE1eaW4Ywfhkt5BggcIk463g",
+  "AIzaSyDaRAVDYonItLkhQipP7IEhcrRM_q3RQdU",
+  "AIzaSyBzfphr62SGax09-wvKM4DbOACKarqYFtg",
+  "AIzaSyCxohCSJDmmpQHnxZcTnAkUr9WjFinBOEo",
+  "AIzaSyBjtH15LRaIzM4JnFw70Ha_qm8Lzx0fOME",
+  "AIzaSyBwkd8WXx_T4IBv-PTSlaSJDMuxuHWJV_g"
+];
+
+const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+
 export default async function handler(req) {
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-    };
-
-    if (req.method === 'OPTIONS') {
-        return new Response(null, { status: 200, headers: corsHeaders });
-    }
-
-    try {
-        const { contents, system_instruction } = await req.json();
-        
-        // كنجيبو السوارت من Vercel
-        const API_KEYS = [
-            process.env.GEMINI_KEY_1,
-            process.env.GEMINI_KEY_2,
-            process.env.GEMINI_KEY_3,
-            process.env.GEMINI_KEY_4,
-            process.env.GEMINI_KEY_5
-        ].filter(k => k); 
-
-        if (API_KEYS.length === 0) throw new Error("No API Keys found");
-
-        const randomKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)];
-        
-        const googleRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${randomKey}`, {
+  try {
+    const { contents } = await req.json();
+    const randomKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)];
+    
+    // كيجرب الموديلات بالترتيب باش يضمن الجواب
+    for (const model of MODELS) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${randomKey}`,
+          {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents, system_instruction })
-        });
+            body: JSON.stringify({ 
+              contents,
+              generationConfig: { maxOutputTokens: 1000 }
+            })
+          }
+        );
 
-        const data = await googleRes.json();
-        return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
-    } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+        if (response.ok) {
+          const data = await response.json();
+          return new Response(JSON.stringify(data), {
+            headers: { 'content-type': 'application/json' }
+          });
+        }
+      } catch (e) {
+        console.error(`Model ${model} failed, switching...`);
+      }
     }
+
+    return new Response(JSON.stringify({ error: "Server Busy" }), { status: 500 });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
 }
