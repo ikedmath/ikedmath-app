@@ -1,11 +1,9 @@
 const API_KEY = process.env.GOOGLE_API_KEY;
-// كنجيبو السوارت إلا كانوا بزاف (احتياط)
 const ALL_KEYS = API_KEY ? API_KEY.split(',') : [];
 
 const MODEL_NAME = "gemini-flash-latest";
 
 module.exports = async (req, res) => {
-  // ... (نفس إعدادات CORS) ...
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -16,7 +14,6 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // اختيار ساروت عشوائي
   const randomKey = ALL_KEYS.length > 0 ? ALL_KEYS[Math.floor(Math.random() * ALL_KEYS.length)].trim() : null;
 
   if (!randomKey) {
@@ -26,10 +23,13 @@ module.exports = async (req, res) => {
   try {
     const { contents } = req.body;
 
-    // 🕵️‍♂️ [جديد] هاد السطر هو "الجاسوس"
-    // أي ميساج غايوصل، غايتكتب عندك فـ Vercel Logs
-    const userMessage = contents?.[0]?.parts?.[0]?.text || "No text";
-    console.log("📝 سؤال جديد وصل: ", userMessage);
+    // 👇 هنا فين كاين التغيير باش يبان ليك السؤال كامل وواضح
+    const lastIndex = contents.length - 1;
+    const lastMessage = contents[lastIndex]?.parts?.[0]?.text || "No text";
+
+    console.log("\n⬇️ --- بداية سؤال جديد --- ⬇️");
+    console.log(lastMessage);
+    console.log("⬆️ --- نهاية السؤال --- ⬆️\n");
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${randomKey}`,
@@ -53,7 +53,7 @@ module.exports = async (req, res) => {
     if (response.ok) {
       return res.status(200).json(data);
     } else {
-      console.error("Google Error:", data); // كنسجلو حتى الأخطاء باش نشوفوها
+      console.error("Google Error:", data);
       return res.status(500).json({ error: data.error?.message || "Google Error" });
     }
 
