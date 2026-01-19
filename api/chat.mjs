@@ -19,13 +19,17 @@ const API_KEYS = [
   "AIzaSyBwkd8WXx_T4IBv-PTSlaSJDMuxuHWJV_g"
 ];
 
-const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+// ⚠️ هادو هوما السميات الصحيحة عند Google
+const MODELS = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"];
 
 export default async function handler(req) {
   try {
     const { contents } = await req.json();
     const randomKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)];
     
+    // كنزيدو Debugging باش نعرفو السبب الحقيقي إلا فشل
+    let lastError = "";
+
     for (const model of MODELS) {
       try {
         const response = await fetch(
@@ -45,13 +49,19 @@ export default async function handler(req) {
           return new Response(JSON.stringify(data), {
             headers: { 'content-type': 'application/json' }
           });
+        } else {
+          // نسجلو الخطأ باش نشوفوه
+          const errData = await response.text();
+          lastError = `Model ${model} Error: ${errData}`;
+          console.log(lastError);
         }
       } catch (e) {
-        console.log(`Model ${model} failed`);
+        lastError = e.message;
       }
     }
 
-    return new Response(JSON.stringify({ error: "Server Busy" }), { status: 500 });
+    // إلا فشل، كنرجعو ليك السبب الحقيقي بلاصة "Server Busy"
+    return new Response(JSON.stringify({ error: lastError || "All models failed" }), { status: 500 });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
