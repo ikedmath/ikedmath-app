@@ -20,26 +20,26 @@ const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
 
 // دالة السيرفر (Node.js Standard)
 module.exports = async (req, res) => {
-  // 1. السماح للواجهة بالاتصال (CORS Fix)
+  // 1. إعدادات الأمان (CORS)
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
-  // إلا كان غير فحص (OPTIONS)، جاوب بـ OK وسكت
+  // إلا كان غير فحص (OPTIONS)، جاوب بـ OK
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
   try {
-    // 2. قراءة الرسالة من الواجهة
+    // 2. قراءة الرسالة
     const { contents } = req.body;
     
     // 3. اختيار ساروت عشوائي
     const randomKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)];
 
-    // 4. محاولة الاتصال بـ Google (تجريب الموديلات بالترتيب)
+    // 4. محاولة الاتصال بـ Google
     for (const model of MODELS) {
       try {
         const googleResponse = await fetch(
@@ -56,7 +56,6 @@ module.exports = async (req, res) => {
 
         if (googleResponse.ok) {
           const data = await googleResponse.json();
-          // نجحنا! صيفط الجواب للواجهة
           return res.status(200).json(data);
         }
       } catch (innerError) {
@@ -64,11 +63,9 @@ module.exports = async (req, res) => {
       }
     }
 
-    // إلا فشلو كاملين
     return res.status(503).json({ error: "All models are busy." });
 
   } catch (error) {
-    // خطأ فادح فالسيرفر
     return res.status(500).json({ error: error.message });
   }
 };
