@@ -1,57 +1,46 @@
 /* =======================================================
-   IKED SERVERLESS FUNCTION (Corrected Key Name)
+   IKED DIAGNOSTIC TOOL
+   مهمته فقط جلب قائمة الموديلات المتاحة لحسابك
    ======================================================= */
 
 export default async function handler(req, res) {
-    // 1. إعدادات CORS
+    // إعدادات CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
-    }
-
     try {
-        const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ error: 'No prompt provided' });
-
-        // ✅ هنا كان المشكل: غيرنا الاسم ليطابق إعدادات Vercel ديالك
+        // 1. جلب الساروت الآمن من Vercel
         const apiKey = process.env.GOOGLE_API_KEY;
 
         if (!apiKey) {
-            console.error("Missing API Key");
-            return res.status(500).json({ error: 'Server Error: API Key missing' });
+            return res.status(500).json({ result: "❌ Error: API Key is missing in Vercel!" });
         }
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // 2. سؤال Google عن الموديلات المتوفرة (GET Request)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
         
-        const response = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
+        const data = await response.json();
+
+        if (data.error) {
+            return res.status(500).json({ result: `❌ Google Error: ${data.error.message}` });
+        }
+
+        // 3. تصفية الموديلات التي تصلح للشات فقط
+        const chatModels = data.models
+            .filter(model => model.supportedGenerationMethods.includes("generateContent"))
+            .map(model => `🔹 ${model.name} (${model.version})`)
+            .join('\n');
+
+        // 4. إرسال القائمة كنتيجة للشات
+        return res.status(200).json({ 
+            result: `✅ تم الاتصال بنجاح!\nإليك الموديلات المتاحة لك:\n\n${chatModels}\n\nاختر واحداً وأخبرني به.` 
         });
 
-        if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`Gemini API Error: ${err}`);
-        }
-
-        const data = await response.json();
-        const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        return res.status(200).json({ result: textResponse || "No text returned" });
-
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ result: `Error: ${error.message}` });
     }
 }
