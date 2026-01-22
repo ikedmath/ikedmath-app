@@ -1,6 +1,7 @@
 /* =======================================================
-   IKED BRAIN v6.0 (Smart Fallback System)
-   Try Gemini 2.5 -> If Quota Exceeded -> Switch to 1.5
+   IKED BRAIN v8.0 (The Ultimate Waterfall) 🌊
+   Strategy: Try ALL available models until one works.
+   Zero Error Tolerance.
    ======================================================= */
 
 export default async function handler(req, res) {
@@ -20,6 +21,18 @@ export default async function handler(req, res) {
         const apiKey = process.env.GOOGLE_API_KEY;
         if (!apiKey) return res.status(500).json({ error: 'API Key missing' });
 
+        // 📝 لائحة "النخبة" (Elite List) مرتبة بالأولوية
+        // الكود غايجربهم واحد بواحد. اخترت ليك الأفضل من الليستة ديالك
+        const modelCascade = [
+            "gemini-2.5-flash",          // 1. الأسرع والأذكى (هدفنا الأول)
+            "gemini-2.5-pro",            // 2. الذكاء الخارق (إلا 1 فشل)
+            "gemini-3-flash-preview",    // 3. تكنولوجيا المستقبل (تجربة)
+            "gemini-2.0-flash-001",      // 4. الاستقرار التام (Stable)
+            "deep-research-pro-preview-12-2025", // 5. البحث العميق (للحالات الصعبة)
+            "gemini-flash-latest",       // 6. الجوكر (ديما خدام - Fallback)
+            "gemini-pro"                 // 7. الملاذ الأخير (Old but Gold)
+        ];
+
         // شخصية الأستاذ IKED
         const systemInstruction = `
         🔴 تعليمات النظام (System Persona):
@@ -31,59 +44,60 @@ export default async function handler(req, res) {
 
         const fullPrompt = `${systemInstruction}\n\n👤 التلميذ: ${prompt}\n🎓 الأستاذ IKED:`;
 
-        /* ==================================================
-           محاولة 1: استعمال الموديل الخارق (Gemini 2.5)
-           ================================================== */
-        try {
-            console.log("Attempting with Gemini 2.5 Flash...");
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
-            });
+        let lastError = null;
+        let successModel = null;
 
-            // إلا كان الرد 429 (تقادا الرصيد) أو 404 (مالقاش الموديل)، دوز للخطة ب
-            if (response.status === 429 || response.status === 404) {
-                throw new Error(`Primary model failed with status ${response.status}`);
+        // 🔄 حلقة الدوران "المستميتة" (The Relentless Loop)
+        for (const modelName of modelCascade) {
+            try {
+                // ملاحظة: كنستعملو AbortController باش إلا تعطل الموديل بزاف (أكثر من 8 ثواني) نقطعو عليه وندوزو للي موراه
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 ثواني حد أقصى لكل موديل
+
+                console.log(`📡 Trying: ${modelName}...`);
+                
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId); // حبس المؤقت إلا جاوب
+
+                if (!response.ok) {
+                    const status = response.status;
+                    // الأخطاء اللي كتخلينا ندوزو للموديل التالي: 429 (Quota), 404 (Not Found), 503 (Overloaded)
+                    if ([429, 404, 503, 500].includes(status)) {
+                        console.warn(`⚠️ ${modelName} failed (${status}). Next!`);
+                        continue; 
+                    }
+                    throw new Error(`API Error ${status}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!text) throw new Error("Empty response");
+
+                // 🎉 صافي لقينا واحد خدام!
+                successModel = modelName;
+                console.log(`✅ Success with: ${successModel}`);
+                return res.status(200).json({ result: text });
+
+            } catch (error) {
+                console.error(`❌ ${modelName} Error:`, error.message);
+                lastError = error.message;
+                // ما كنحبسوش، كنكملو للموديل التالي
             }
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Google Error: ${errText}`);
-            }
-
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            // نجحنا! نرجعو الجواب
-            return res.status(200).json({ result: text });
-
-        } catch (primaryError) {
-            /* ==================================================
-               محاولة 2: خطة الإنقاذ (Gemini 1.5 Flash)
-               ================================================== */
-            console.warn(`⚠️ Switching to Fallback Model (1.5) due to: ${primaryError.message}`);
-
-            const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
-            });
-
-            if (!fallbackResponse.ok) {
-                const errText = await fallbackResponse.text();
-                throw new Error(`Backup model also failed: ${errText}`);
-            }
-
-            const data = await fallbackResponse.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            // نرجعو الجواب (التلميذ ما غايحس بوالو)
-            return res.status(200).json({ result: text || "وصل الجواب فارغ." });
         }
 
-    } catch (error) {
-        console.error("Critical Server Error:", error);
-        return res.status(500).json({ error: "سمح ليا، الخوادم مشغولة بزاف دابا. عاود سولني من دابا واحد شوية." });
+        // 🛑 إلا وصلنا هنا، يعني "القضية حامضة" وكولشي فشل
+        throw new Error(`All models failed. Last error: ${lastError}`);
+
+    } catch (finalError) {
+        return res.status(500).json({ 
+            error: "IKED كيدير صيانة خفيفة دابا. عاود سولني من دابا دقيقة." 
+        });
     }
 }
