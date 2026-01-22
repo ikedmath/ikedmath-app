@@ -1,11 +1,11 @@
 /* =======================================================
-   IKED BRAIN v8.0 (The Ultimate Waterfall) 🌊
-   Strategy: Try ALL available models until one works.
-   Zero Error Tolerance.
+   IKED BRAIN v10.0 (The Immortal Engine) ♾️
+   Architected for: Max Quality + Zero Downtime
+   Powered by: Gemini 2.5 Flash -> 2.0 Lite -> Latest
    ======================================================= */
 
 export default async function handler(req, res) {
-    // 1. إعدادات CORS
+    // 1. إعدادات الحماية والاتصال (CORS Security)
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -21,40 +21,37 @@ export default async function handler(req, res) {
         const apiKey = process.env.GOOGLE_API_KEY;
         if (!apiKey) return res.status(500).json({ error: 'API Key missing' });
 
-        // 📝 لائحة "النخبة" (Elite List) مرتبة بالأولوية
-        // الكود غايجربهم واحد بواحد. اخترت ليك الأفضل من الليستة ديالك
+        // 💎 لائحة النخبة (The Elite Cascade)
+        // تم اختيار هذه الموديلات بدقة من القائمة التي قدمتها لضمان عدم التوقف
         const modelCascade = [
-            "gemini-2.5-flash",          // 1. الأسرع والأذكى (هدفنا الأول)
-            "gemini-2.5-pro",            // 2. الذكاء الخارق (إلا 1 فشل)
-            "gemini-3-flash-preview",    // 3. تكنولوجيا المستقبل (تجربة)
-            "gemini-2.0-flash-001",      // 4. الاستقرار التام (Stable)
-            "deep-research-pro-preview-12-2025", // 5. البحث العميق (للحالات الصعبة)
-            "gemini-flash-latest",       // 6. الجوكر (ديما خدام - Fallback)
-            "gemini-pro"                 // 7. الملاذ الأخير (Old but Gold)
+            "gemini-2.5-flash",        // 🥇 الجودة العالية والسرعة (الأولوية القصوى)
+            "gemini-2.0-flash-lite",   // 🥈 السلاح السري: موديل خفيف جداً لا يتوقف بسهولة (Anti-Quota)
+            "gemini-flash-latest"      // 🥉 شبكة الأمان الأخيرة (Always Online)
         ];
 
-        // شخصية الأستاذ IKED
+        // 🧠 شخصية الأستاذ IKED (البيداغوجيا المغربية)
         const systemInstruction = `
-        🔴 تعليمات النظام (System Persona):
-        أنت "IKED"، أستاذ رياضيات وفيزياء مغربي للثانية باكالوريا.
-        - اشرح بالدارجة المغربية والمصطلحات العلمية الفرنسية.
-        - طبق المنهجية البيداغوجية النشطة: لا تعطِ الحل، بل وجه التلميذ.
-        - تعامل بذكاء وصبر، وشجع التلميذ دائماً.
+        🔴 تعليمات النظام الصارمة (System Persona):
+        أنت "IKED"، أستاذ رياضيات وفيزياء مغربي متميز للثانية باكالوريا.
+        
+        1. **الأسلوب:** تكلم بالدارجة المغربية الممزوجة بمصطلحات علمية فرنسية (Biof).
+        2. **المنهجية:** لا تعطِ الحل جاهزاً أبداً. استخدم "الأسئلة الموجهة" (Scaffolding) لتقود التلميذ للحل بنفسه.
+        3. **الدعم النفسي:** كن صبوراً، مشجعاً، واستعمل أمثلة من الواقع المغربي.
+        4. **التنسيق:** اكتب المعادلات الرياضية بوضوح.
         `;
 
         const fullPrompt = `${systemInstruction}\n\n👤 التلميذ: ${prompt}\n🎓 الأستاذ IKED:`;
 
         let lastError = null;
-        let successModel = null;
 
-        // 🔄 حلقة الدوران "المستميتة" (The Relentless Loop)
+        // 🔄 حلقة الدوران الذكية (Smart Execution Loop)
         for (const modelName of modelCascade) {
             try {
-                // ملاحظة: كنستعملو AbortController باش إلا تعطل الموديل بزاف (أكثر من 8 ثواني) نقطعو عليه وندوزو للي موراه
+                // نضع مؤقتاً (Timeout) لكل محاولة: 12 ثانية كحد أقصى
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 ثواني حد أقصى لكل موديل
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-                console.log(`📡 Trying: ${modelName}...`);
+                console.log(`🚀 Trying Engine: ${modelName}...`);
                 
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
                     method: 'POST',
@@ -63,41 +60,49 @@ export default async function handler(req, res) {
                     signal: controller.signal
                 });
 
-                clearTimeout(timeoutId); // حبس المؤقت إلا جاوب
+                clearTimeout(timeoutId); // إلغاء المؤقت عند الاستجابة
 
                 if (!response.ok) {
                     const status = response.status;
-                    // الأخطاء اللي كتخلينا ندوزو للموديل التالي: 429 (Quota), 404 (Not Found), 503 (Overloaded)
-                    if ([429, 404, 503, 500].includes(status)) {
-                        console.warn(`⚠️ ${modelName} failed (${status}). Next!`);
-                        continue; 
+                    
+                    // 🛑 تحليل الأخطاء لاتخاذ القرار
+                    if (status === 429) { 
+                        console.warn(`⚠️ ${modelName} Quota Limit Reached. Switching to Lite tier...`);
+                        continue; // تجاوز فوراً للموديل التالي (Lite)
                     }
-                    throw new Error(`API Error ${status}`);
+                    if (status === 404 || status === 503) {
+                        console.warn(`⚠️ ${modelName} Unavailable. Next...`);
+                        continue;
+                    }
+                    
+                    // أخطاء أخرى
+                    const errText = await response.text();
+                    throw new Error(`Model Error (${status}): ${errText}`);
                 }
 
                 const data = await response.json();
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 
-                if (!text) throw new Error("Empty response");
+                if (!text) throw new Error("Empty response received");
 
-                // 🎉 صافي لقينا واحد خدام!
-                successModel = modelName;
-                console.log(`✅ Success with: ${successModel}`);
+                // ✅ نجاح! (Success)
+                console.log(`✅ Served by: ${modelName}`);
                 return res.status(200).json({ result: text });
 
             } catch (error) {
-                console.error(`❌ ${modelName} Error:`, error.message);
+                console.error(`❌ Failure on ${modelName}:`, error.message);
                 lastError = error.message;
-                // ما كنحبسوش، كنكملو للموديل التالي
+                // نتابع الدوران للموديل التالي في القائمة
             }
         }
 
-        // 🛑 إلا وصلنا هنا، يعني "القضية حامضة" وكولشي فشل
-        throw new Error(`All models failed. Last error: ${lastError}`);
+        // 🆘 في حالة فشل جميع الخطط (نادر جداً مع وجود Lite)
+        // نرسل رسالة لطيفة للتلميذ بدل رسالة خطأ تقنية
+        return res.status(200).json({ 
+            result: "سمح ليا يا بطل، الشبكة عليها ضغط خيالي دابا! 🤯\n\nعافاك حسب حتى لـ 10 وعاود سولني، أنا معاك." 
+        });
 
     } catch (finalError) {
-        return res.status(500).json({ 
-            error: "IKED كيدير صيانة خفيفة دابا. عاود سولني من دابا دقيقة." 
-        });
+        return res.status(500).json({ error: "System Overload" });
     }
 }
