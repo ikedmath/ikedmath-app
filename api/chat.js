@@ -1,10 +1,10 @@
 /* =======================================================
-   IKED BRAIN v4.0 (The Socratic Professor)
-   Persona: Pedagogical, Patient, & Strictly Moroccan Curriculum
+   IKED BRAIN v2026 (Next-Gen)
+   Powered by Gemini 2.5 Flash 🚀
    ======================================================= */
 
 export default async function handler(req, res) {
-    // 1. إعدادات الأمان والاتصال (Standard Configuration)
+    // 1. إعدادات CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -15,46 +15,30 @@ export default async function handler(req, res) {
 
     try {
         const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ error: 'المرجو طرح سؤال.' });
+        if (!prompt) return res.status(400).json({ error: 'فين السؤال؟' });
 
         const apiKey = process.env.GOOGLE_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'Configuration Error: API Key missing' });
+        if (!apiKey) return res.status(500).json({ error: 'API Key missing' });
 
-        // 2. 🧬 الحمض النووي لـ IKED (System Instructions)
-        // هنا تمت ترجمة كل طلباتك إلى تعليمات برمجية دقيقة للموديل
+        // 2. شخصية الأستاذ IKED (Persona)
         const systemInstruction = `
-        🔴 تعليمات النظام الصارمة (System Persona):
-        أنت "IKED"، أستاذ رياضيات ذكي متخصص في مستوى "الثانية باكالوريا" (برنامج المغرب).
-        لغتك: الدارجة المغربية المفهومة + المصطلحات العلمية بالفرنسية (Biof) كما في القسم.
-
-        ⚠️ القواعد الذهبية (لا تكسرها أبداً):
-        1. **ممنوع إعطاء الحل مباشرة:** دورك هو التوجيه (Guiding)، ليس الحل.
-        2. **الطريقة السقراطية:** جاوب دائماً بسؤال ذكي يخلي التلميذ يكتشف الخطوة الجاية راسو.
-        3. **التحليل النفسي:**
-           - إذا التلميذ جاوب غلط: ماتقولش "خطأ". قول: "فكرة مزيانة، ولكن واش رديتي البال للإشارة؟" أو "شنو القاعدة اللي طبقتي هنا؟".
-           - إذا التلميذ جاوب صح: تحداه. قول: "برافو! ودابا كون بدلنا المجال لـ [0,1]، واش تبقى نفس النتيجة؟".
-        4. **التدرج:** ابدأ بالفكرة (Intuition) -> المنطق (Logic) -> التطبيق (Calcul) -> صياغة الامتحان (Rédaction).
-        5. **الإطار المرجعي:** ركز على ما يطلب في الامتحان الوطني المغربي (TVI, IPP, Étude de fonctions, Nombres Complexes...).
-
-        🎭 الأسلوب والشخصية:
-        - هادئ، صبور، ومشجع.
-        - استخدم عبارات مثل: "ركز معايا"، "بشويا عليك"، "تبع الخيط"، "هاد الفخ كيطيحو فيه بزاف فالوطني".
-        - لا تكن روبوتياً، ولا تكن مهرجاً. كن أستاذاً يحترمه التلميذ ويرتاح له.
-
-        🛠 سيناريوهات التفاعل:
-        - إذا سألك التلميذ: "خرج ليا هادي"، جاوبه: "أنا نعاونك تخرجها، ولكن قولي بعدا شنو هي أول حاجة بانت ليك؟ شنو هي مجموعة التعريف هنا؟".
-        - إذا كان التلميذ محبطاً: "ماشي مشكل، الرياضيات كتبغي الصبر. نرجعو للأساس، عقلتي على...؟".
-
-        مهمتك الآن: تصرف كـ IKED وابدأ الدرس/التوجيه بناءً على سؤال التلميذ التالي.
+        🔴 تعليمات النظام (System Persona):
+        أنت "IKED"، أستاذ رياضيات وفيزياء مغربي للثانية باكالوريا (Bac 2026).
+        - اشرح بالدارجة المغربية والمصطلحات العلمية الفرنسية.
+        - طبق المنهجية البيداغوجية النشطة: لا تعطِ الحل، بل وجه التلميذ.
+        - تعامل بذكاء وصبر، وشجع التلميذ دائماً.
         `;
 
         const fullPrompt = `${systemInstruction}\n\n👤 التلميذ: ${prompt}\n🎓 الأستاذ IKED:`;
 
-        // 3. اختيار الموديل الأنسب (gemini-2.5-flash للسرعة والذكاء)
-        const modelName = "models/gemini-2.5-flash"; 
+        // 3. الاتصال بالموديل الحديث (Gemini 2.5 Flash)
+        // ملاحظة: نستخدم الاسم كما ظهر في القائمة لديك
+        const modelName = "gemini-2.5-flash"; 
         
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
         
+        console.log(`📡 Connecting to ${modelName}...`);
+
         const response = await fetch(geminiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -63,35 +47,27 @@ export default async function handler(req, res) {
             })
         });
 
+        // 4. معالجة دقيقة للأخطاء (باش نعرفو السبب الحقيقي)
         if (!response.ok) {
-            console.warn("Falling back to stable model due to error...");
-            return await tryFallbackModel(apiKey, fullPrompt, res);
+            const errorText = await response.text();
+            console.error("❌ Google API Error:", errorText);
+            
+            // هنا كنرد ليك الخطأ بالتفصيل باش تشوفو
+            throw new Error(`Google Error (${response.status}): ${errorText}`);
         }
 
         const data = await response.json();
         const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        return res.status(200).json({ result: textResponse || "ما وصلني والو، عاود كتب ليا." });
+        if (!textResponse) {
+            throw new Error("وصل الجواب ولكن كان فارغاً (Empty Response).");
+        }
+
+        return res.status(200).json({ result: textResponse });
 
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "وقع شي مشكل تقني، سمح ليا." });
-    }
-}
-
-// دالة الطوارئ (تستعمل الموديل المستقر إذا فشل الموديل الجديد)
-async function tryFallbackModel(apiKey, prompt, res) {
-    try {
-        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-        const response = await fetch(fallbackUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        return res.status(200).json({ result: text || "Error in fallback" });
-    } catch (e) {
-        return res.status(500).json({ error: "الخادم مشغول حالياً." });
+        console.error("Server Function Error:", error);
+        // إرسال تفاصيل الخطأ للتطبيق
+        return res.status(500).json({ error: error.message });
     }
 }
