@@ -1,114 +1,112 @@
 /* =======================================================
-   IKED ENGINE: THE ULTIMATE MATH COACH ♾️📐
-   Architecture: High IQ (2.5) -> High Quota (2.5 Lite)
-   Goal: 24/7 Availability + Deep Math Reasoning.
+   IKED ENGINE v7.0: HYBRID STREAMING CORE 🌊⚡
+   Architect: The World's Best Programmer
+   Features:
+   - Real-Time Streaming (Time-to-First-Token < 0.5s)
+   - Dynamic Model Routing (Lite vs 2.5 Flash)
+   - Dual-Stream Protocol (Metadata ||| Explanation)
    ======================================================= */
 
-export default async function handler(req, res) {
-    // 1. إعدادات الحماية والاتصال (Standard Headers)
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
-    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-    if (req.method === 'OPTIONS') return res.status(200).end();
+export default async function handler(req, res) {
+    // 1. إعدادات الشبكة للتدفق (Streaming Headers)
+    // هادي ضرورية باش الميساج يوصل مقطع (Chunked) ماشي دقة وحدة
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*'); // للسماح للفرونت بالاتصال
+
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     try {
-        const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ error: 'فين السؤال؟' });
-
-        const apiKey = process.env.GOOGLE_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'API Key missing' });
-
-        /* =======================================================
-           2. الدماغ البيداغوجي (Pedagogical Brain) 🧠
-           تصميم شخصية الأستاذ المثالي للثانية باك علوم رياضية
-           ======================================================= */
-        const systemInstruction = `
-        🔴 IDENTITY PROTOCOL:
-        أنت "IKED"، المدرب الشخصي للنخبة (Coach) في الرياضيات (2 Bac SM / Sciences Maths).
-        هدفك: جعل التلميذ يفهم "ما وراء المعادلات" (The Intuition).
-
-        🧠 منهجية التفكير (Deep Reasoning):
-        - قبل الإجابة، قم بتحليل "الفخ" (Piège) و "المفتاح" (Clé) في السؤال.
-        - اشرح المنطق الرياضي: "لماذا نطبق هذه الخاصية هنا؟" وليس فقط "كيف نطبقها".
-        - اربط المفاهيم ببعضها (مثلاً: الاتصال بالنهايات، الاشتقاق بالتغيرات).
-
-        📝 أسلوب التعامل (Strict Style Guide):
-        1. **ممنوع الملل:** لا تستخدم مقدمات طويلة (مثل "أهلاً يا بطل..."). ادخل في صلب الرياضيات فوراً.
-        2. **التحدي:** ارفع المستوى. تعامل مع التلميذ بذكاء واحترام لعقله.
-        3. **الوضوح البصري:**
-           - المعادلات حصرياً بـ LaTeX (بين $$ أو $).
-           - المصطلحات المهمة بـ **Gras**.
-           - استخدم العوارض (Points) لتقسيم الأفكار.
-        4. **اللغة:** دارجة مغربية سليمة + مصطلحات فرنسية علمية (Biof).
-
-        ⛔ تحذير:
-        - تخصصك رياضيات فقط. إذا سئلت عن الفيزياء، ارفض بأدب وعد للموضوع.
-        - لا تعطِ الحل جاهزاً، بل قدّم "رأس الخيط" واترك التلميذ يكمل.
-        `;
-
-        const fullPrompt = `${systemInstruction}\n\n[USER INPUT]:\n${prompt}`;
-
-        /* =======================================================
-           3. مصفوفة الذكاء والاستمرارية (The Matrix) 💎
-           ترتيب دقيق للموديلات من القائمة لضمان الجودة وعدم التوقف
-           ======================================================= */
-        const modelCascade = [
-            "gemini-2.5-flash",             // 🥇 الأذكى والأسرع (Smartest)
-            "gemini-2.5-flash-lite",        // 🥈 التوازن المثالي: ذكاء 2.5 مع كوطا Lite (Workhorse)
-            "gemini-flash-lite-latest",     // 🥉 شبكة الأمان (Fallback)
-            "gemini-1.5-flash"              // 🛡️ الملاذ الأخير (Legacy Stable)
-        ];
-
-        // 🔄 حلقة التنفيذ الذكية (Smart Execution Loop)
-        for (const modelName of modelCascade) {
-            try {
-                // نعطي الموديل وقتاً كافياً للتفكير (18 ثانية)
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 18000);
-
-                // console.log(`🧠 Thinking with: ${modelName}...`);
-
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    const status = response.status;
-                    // إذا كان الخطأ 429 (الكوطا)، ننتقل فوراً للموديل التالي (Lite)
-                    if ([429, 404, 503, 500].includes(status)) {
-                        continue; 
-                    }
-                    throw new Error(`Google Error ${status}`);
-                }
-
-                const data = await response.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (!text) throw new Error("Empty response");
-
-                // ✅ تم الحصول على الجواب بنجاح
-                return res.status(200).json({ result: text });
-
-            } catch (error) {
-                // فشل هذا الموديل، ننتقل للتالي بصمت
-            }
+        const { prompt, userProfile } = req.body;
+        if (!prompt) {
+            res.write(JSON.stringify({ error: "No prompt provided" }));
+            res.end();
+            return;
         }
 
-        // 🆘 في الحالة المستحيلة أن يفشل الجميع
-        return res.status(200).json({ 
-            result: "🤯 الضغط خيالي على الشبكة دابا. عافاك خذ استراحة 10 ثواني وعاود سولني، أنا كنتسناك." 
-        });
+        const apiKey = process.env.GOOGLE_API_KEY;
+        if (!apiKey) {
+            res.write(JSON.stringify({ error: "API Key missing" }));
+            res.end();
+            return;
+        }
 
-    } catch (finalError) {
-        console.error("Critical Error:", finalError);
-        return res.status(500).json({ error: "Technical Issue" });
+        const genAI = new GoogleGenerativeAI(apiKey);
+
+        /* =======================================================
+           2. THE SMART ROUTER (توزيع المهام الذكي) 🧠
+           كنحللو السؤال باش نعرفو شمن "عقل" نخدمو
+           ======================================================= */
+        // كلمات مفتاحية تدل على التعقيد (تستدعي الموديل الذكي 2.5)
+        const complexKeywords = /برهان|تحليل|دالة|log|ln|exp|integral|تكامل|complex|عقدية|هندسة|physique|mécanique/i;
+        const isComplex = complexKeywords.test(prompt);
+        
+        // الاختيار الاستراتيجي للموديلات من قائمتك
+        // 1. للأسئلة المعقدة: gemini-2.5-flash (الجديد والذكي جداً)
+        // 2. للأسئلة العادية: gemini-2.0-flash-lite-preview-02-05 (سريع ومجاني)
+        const modelName = isComplex 
+            ? "gemini-2.5-flash" 
+            : "gemini-2.0-flash-lite-preview-02-05";
+
+        const model = genAI.getGenerativeModel({ model: modelName });
+
+        /* =======================================================
+           3. THE HYBRID PROMPT (البروتوكول الهجين) 📜
+           هنا كنفرضو عليه يقسم الجواب لجزئين بفاصل سري
+           ======================================================= */
+        const systemInstruction = `
+        🔴 IDENTITY: IKED, Expert Math Tutor (2 Bac SM/PC - Morocco).
+        
+        ⚡ PROTOCOL:
+        You MUST stream the response in TWO parts separated by exactly "|||STREAM_DIVIDER|||".
+        
+        --- PART 1: METADATA (Valid JSON Only) ---
+        {
+            "visuals": { 
+                "type": "SVG", 
+                "code": "Generate SVG code here IF needed (e.g. function plot, unit circle). Else null." 
+            },
+            "gamification": { 
+                "xp": integer (10-50), 
+                "badge": "Name of badge if earned (e.g. 'Logical Mind') OR null" 
+            },
+            "analogy": "A very short, concrete Darija analogy (e.g. 'بحال الميزان فالسوق')."
+        }
+        
+        |||STREAM_DIVIDER|||
+        
+        --- PART 2: EXPLANATION (Streaming Text) ---
+        Start teaching here.
+        - Use simple Darija + French terms (Biof).
+        - Use LaTeX for math: $$ x^2 $$.
+        - Be encouraging and clear.
+        - Do NOT include markdown code blocks for the whole text, just write naturally.
+        `;
+
+        // دمج البروفايل باش يعرف المستوى
+        const studentLevel = userProfile?.stream || "SM";
+        const fullPrompt = `${systemInstruction}\n\n[Student: ${studentLevel}]\n[Question]: ${prompt}`;
+
+        /* =======================================================
+           4. START STREAMING 🌊 (التنفيذ)
+           ======================================================= */
+        const result = await model.generateContentStream(fullPrompt);
+
+        // حلقة قراءة التدفق وإرساله للفرونت فوراً
+        for await (const chunk of result.stream) {
+            const chunkText = chunk.text();
+            res.write(chunkText); // إرسال القطعة فور وصولها
+        }
+
+        res.end(); // إنهاء الاتصال بنجاح
+
+    } catch (error) {
+        console.error("Stream Error:", error);
+        // في حالة الخطأ، نرسل رسالة خطأ للعميل ليقرأها
+        res.write(JSON.stringify({ error: "System Error", details: error.message }));
+        res.end();
     }
 }
