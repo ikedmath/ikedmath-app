@@ -1,102 +1,77 @@
 /* =======================================================
-   IKED ENGINE v2026 (MATH SPECIALIST) 📐
-   Focus: Pure Mathematics (No Physics) + Strict Pedagogy
+   IKED AUDITOR 2026 ⚖️
+   Mission: Ask Google AI to pick the BEST Math model
+   Criteria: High IQ + High Quota (Unlimited Free Tier)
    ======================================================= */
 
 export default async function handler(req, res) {
-    // 1. إعدادات الحماية
+    // إعدادات الحماية
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     try {
-        const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ error: 'No prompt' });
-
         const apiKey = process.env.GOOGLE_API_KEY;
         if (!apiKey) return res.status(500).json({ error: 'API Key missing' });
 
-        /* =======================================================
-           2. الهندسة البيداغوجية (تخصص رياضيات حصرياً)
-           ======================================================= */
-        const systemInstruction = `
-        🔴 SYSTEM INSTRUCTION (STRICT MATH ONLY):
+        // 1. جلب قائمة الموديلات المتوفرة حالياً
+        const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const listData = await listResponse.json();
+
+        if (!listData.models) throw new Error("Google did not return any models.");
+
+        // نأخذ فقط الموديلات الصالحة للشات
+        const availableModels = listData.models
+            .filter(m => m.supportedGenerationMethods.includes("generateContent"))
+            .map(m => m.name)
+            .join(", ");
+
+        // 2. صياغة السؤال للفحص (نسأل الموديل "Pro" ليحكم على القائمة)
+        // نستخدم 'gemini-pro' لأنه الأقدر على التحليل المنطقي للاختيار
+        const judgeModel = "gemini-1.5-pro"; 
         
-        أنت "IKED"، أستاذ متخصص **حصرياً** في مادة الرياضيات (Mathematics) للثانية باكالوريا (Bac 2026 Maroc).
-        ⛔ **ممنوع** التحدث في الفيزياء أو العلوم الأخرى. تخصصك هو "الماط" فقط.
+        const auditPrompt = `
+        ACT AS A SENIOR GOOGLE AI ENGINEER.
+        
+        Here is the list of available models for this user:
+        [${availableModels}]
 
-        🎯 قوانين التعامل الصارمة:
-        1. **الترحيب الذكي:**
-           - إذا قال التلميذ "Salam" أو "مرحباً"، لا تبدأ بشرح درس عشوائي.
-           - رحب به باسمه (إذا وجدته) واسأله: "أشمن درس فالرياضيات بغيتي نخدمو اليوم؟ (الاتصال، المتتاليات، الأعداد العقدية...)".
+        The user is a "2nd Bac Mathematical Sciences" student (High Math Level).
+        They need a model that satisfies TWO strict conditions simultaneously:
+        1. **High Intelligence:** Must be excellent at explaining complex math, reasoning, and step-by-step logic (not dumb/boring).
+        2. **High Free Quota:** The user wants to study ALL DAY without hitting "429 Resource Exhausted" errors.
 
-        2. **ممنوع الملل (Conciseness):**
-           - إجاباتك مركزة جداً. 3 أسطر كحد أقصى للفقرة.
-           - استخدم العوارض (Bullet Points) دائماً.
+        ANALYSIS REQUIRED:
+        - "Pro" models are smart but have low limits (50/day).
+        - "Lite" models have high limits but might be too simple.
+        - "Flash" models are the balance.
 
-        3. **أسلوب الشرح:**
-           - المعادلات الرياضية ضروري تكتبها بـ LaTeX (بين $$ أو $).
-           - ابدأ بالفكرة (Intuition) قبل الحساب.
-           - لا تعطِ الحل كاملاً. أعطِ الخطوة الأولى واسأل التلميذ: "كيفاش نكملو؟".
-
-        4. **رفض الأسئلة الخارجة:**
-           - إذا سألك عن الفيزياء أو التاريخ، قل بذكاء: "سمح ليا يا بطل، أنا تخصصي رياضيات (Maths) وبغيتك تجيب 20 فيها. خلينا فالماط، شنو عندك؟".
-
-        طبق هذه القواعد الآن مع رسالة التلميذ.
+        TASK:
+        From the list above, select the SINGLE BEST model name that offers the highest intelligence possible while maintaining a high enough daily quota (1000+ requests) to not stop working.
+        
+        OUTPUT FORMAT:
+        Just write the Model Name inside brackets, like this: [models/name-of-model], followed by a short explanation in Darija regarding why you chose it.
         `;
 
-        const fullPrompt = `${systemInstruction}\n\n[CONTEXT & HISTORY]:\n${prompt}`;
-
-        /* =======================================================
-           3. محرك الاستمرارية (Lite Cascade) 🚜
-           ======================================================= */
-        const modelCascade = [
-            "gemini-2.5-flash-lite",       
-            "gemini-2.0-flash-lite-preview-02-05", 
-            "gemini-flash-lite-latest",
-            "gemini-1.5-flash"             
-        ];
-
-        for (const modelName of modelCascade) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 12000);
-                
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    if ([429, 404, 503, 500].includes(response.status)) continue;
-                    throw new Error(`API Error ${response.status}`);
-                }
-
-                const data = await response.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (!text) throw new Error("Empty response");
-
-                return res.status(200).json({ result: text });
-
-            } catch (error) {
-                // Next model
-            }
-        }
-
-        return res.status(200).json({ 
-            result: "الضغط عالي بزاف. تسنى 10 ثواني وعاود سولني على الماط." 
+        // 3. إرسال طلب التحكيم
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${judgeModel}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: auditPrompt }] }] })
         });
 
-    } catch (finalError) {
-        return res.status(500).json({ error: "System Maintenance" });
+        const data = await response.json();
+        const recommendation = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        return res.status(200).json({ result: `🤖 **تقرير الخبير (Google AI):**\n\n${recommendation}` });
+
+    } catch (error) {
+        // في حالة فشل المحكم، نستخدم خطة الطوارئ
+        return res.status(200).json({ 
+            result: `⚠️ تعذر استشارة الخبير مباشرة (${error.message}).\n\nلكن بناءً على خبرتي: الموديل **gemini-1.5-flash** هو الوحيد الذي يجمع بين الذكاء والكوطا الكبيرة.` 
+        });
     }
 }
