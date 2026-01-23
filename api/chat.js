@@ -1,60 +1,121 @@
 /* =======================================================
-   IKED MODEL AUDITOR 2026 🕵️‍♂️
-   Goal: Find the "High-Throughput" (Unlimited) model.
-   Target Keyword: "Lite" or "Flash"
+   IKED ENGINE v2026 (PERFECT EDITION) 🧠💎
+   Features:
+   1. Anti-Boredom Protocol (Concise, Visual, Challenging).
+   2. Name Recognition & Personalization.
+   3. Zero Downtime (Lite Models Cascade).
    ======================================================= */
 
 export default async function handler(req, res) {
+    // 1. إعدادات الحماية (Security Headers)
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     try {
+        const { prompt } = req.body;
+        if (!prompt) return res.status(400).json({ error: 'No prompt' });
+
         const apiKey = process.env.GOOGLE_API_KEY;
         if (!apiKey) return res.status(500).json({ error: 'API Key missing' });
 
-        // 1. جلب القائمة الكاملة من المصدر
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const data = await response.json();
-
-        if (!data.models) throw new Error("Google ما عطانا حتى موديل!");
-
-        // 2. تحليل الذكاء الاصطناعي للموديلات (تصنيف حسب "الصبر")
-        const allModels = data.models.filter(m => m.supportedGenerationMethods.includes("generateContent"));
+        /* =======================================================
+           2. الهندسة البيداغوجية (The Pedagogical Brain) 🎓
+           هنا تم تطبيق "علم النفس التربوي" لجيل 2026
+           ======================================================= */
+        const systemInstruction = `
+        🔴 DYNAMIC SYSTEM INSTRUCTION (STRICT):
         
-        // البحث عن "الوحش" (Lite)
-        const workhorseModels = allModels.filter(m => m.name.toLowerCase().includes("lite"));
-        // البحث عن "السريع" (Flash)
-        const speedModels = allModels.filter(m => m.name.toLowerCase().includes("flash") && !m.name.toLowerCase().includes("lite"));
-        // البحث عن "العبقري" (Pro)
-        const smartModels = allModels.filter(m => m.name.toLowerCase().includes("pro") && !m.name.toLowerCase().includes("vision"));
+        أنت "IKED"، مدرب النخبة في الرياضيات والفيزياء (Bac 2026 Maroc).
+        لست مجرد أستاذ، أنت "Coach" ذكي، سريع، ومحفز.
 
-        let report = "📊 **تقرير IKED للموديلات المتوفرة (2026):**\n\n";
+        🎯 قوانين التعامل مع التلميذ (The 2026 Protocol):
+        1. **ممنوع الملل (No Fluff):**
+           - إجاباتك يجب أن تكون قصيرة، مركزة، ومقسمة (Chunking).
+           - لا تكتب فقرات طويلة أبداً. استخدم العوارض (Bullet Points).
+           - الحد الأقصى: 3-4 جمل في كل فقرة.
 
-        // 🟢 الفئة 1: الموديلات اللي "ما كتوقفش" (High Quota)
-        report += "🚜 **موديلات الخدمة الشاقة (ينصح بها لعدم التوقف):**\n";
-        if (workhorseModels.length > 0) {
-            workhorseModels.forEach(m => report += `✅ \`${m.name}\` (هذا هو اللي خاصك!)\n`);
-        } else {
-            report += "⚠️ لم أجد موديل 'Lite' (غريب!).\n";
+        2. **التخصيص (Personalization):**
+           - ابحث في سياق المحادثة عن اسم التلميذ. إذا وجدته، استخدمه (مثلاً: "شوف يا [الاسم]..."، "تبارك الله عليك ا [الاسم]").
+           - إذا لم تعرف الاسم، تعامل بلقب "بطل" أو "فنان" حتى تعرفه.
+
+        3. **أسلوب الشرح (Visual & Logical):**
+           - المعادلات الرياضية تكتب حصرياً بـ LaTeX (بين $$ أو $).
+           - الكلمات المهمة اجعلها **عريضة (Bold)** لتسهيل القراءة السريعة.
+           - ابدأ دائماً بـ "الفكرة" (Intuition) قبل "الحساب" (Calculation).
+
+        4. **التفاعل النشط (Active Recall):**
+           - ممنوع إعطاء الحل الكامل دفعة واحدة.
+           - أعطِ الخطوة الأولى، ثم اسأل التلميذ: "كيفاش غانكملو دابا؟" أو "شنو بان ليك؟".
+           - إذا أخطأ التلميذ، لا تقل "خطأ". قل: "فكرة مثيرة، ولكن جرب تشوفها من هاد الزاوية...".
+
+        5. **النبرة (Tone):**
+           - دارجة مغربية نقية + مصطلحات علمية فرنسية (Biof).
+           - كن حازماً في العلم، ولكن مشجعاً في التعامل.
+
+        الآن، استقبل رسالة التلميذ وطبق هذه القواعد بصرامة.
+        `;
+
+        // دمج التعليمات مع سياق المحادثة
+        const fullPrompt = `${systemInstruction}\n\n[CONTEXT & HISTORY]:\n${prompt}`;
+
+        /* =======================================================
+           3. محرك الاستمرارية (The Lite Cascade) 🚜
+           استراتيجية عدم التوقف باستعمال الموديلات الخفيفة
+           ======================================================= */
+        const modelCascade = [
+            "gemini-2.5-flash-lite",       // 🥇 الخيار المثالي (ذكي + خفيف)
+            "gemini-2.0-flash-lite-preview-02-05", // 🥈 خيار احتياطي دقيق
+            "gemini-flash-lite-latest",    // 🥉 خيار الطوارئ المستقر
+            "gemini-1.5-flash"             // 🛡️ الملاذ الأخير (كوطا ضخمة)
+        ];
+
+        // حلقة التنفيذ (Execution Loop)
+        for (const modelName of modelCascade) {
+            try {
+                // Timeout ذكي (12 ثانية) لتفادي الانتظار الممل
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
+                
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const status = response.status;
+                    // تجاوز الأخطاء التقنية أو الكوطا
+                    if ([429, 404, 503, 500].includes(status)) continue;
+                    throw new Error(`API Error ${status}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!text) throw new Error("Empty response");
+
+                // ✅ إرسال الجواب المثالي
+                return res.status(200).json({ result: text });
+
+            } catch (error) {
+                // الانتقال الصامت للموديل التالي
+            }
         }
 
-        // 🟡 الفئة 2: موديلات سريعة ومتوازنة
-        report += "\n⚡ **موديلات سريعة (Flash):**\n";
-        speedModels.slice(0, 3).forEach(m => report += `🔹 \`${m.name}\`\n`);
+        // في حالة نادرة جداً جداً
+        return res.status(200).json({ 
+            result: "🤯 الضغط عالي بزاف دابا. خذ نفس عميق وعاود سولني مورا 10 ثواني." 
+        });
 
-        // 🔴 الفئة 3: موديلات ذكية جداً (لكن الكوطا قليلة)
-        report += "\n🧠 **موديلات عبقرية (Pro - كوطا محدودة):**\n";
-        smartModels.slice(0, 3).forEach(m => report += `🔸 \`${m.name}\`\n`);
-
-        report += "\n💡 **نصيحتي ليك:** باش التطبيق يخدم 24/24 بلا ما يوقف، اختار أول واحد فاللائحة الخضراء (اللي فيه Lite).";
-
-        return res.status(200).json({ result: report });
-
-    } catch (error) {
-        return res.status(500).json({ result: `❌ خطأ: ${error.message}` });
+    } catch (finalError) {
+        return res.status(500).json({ error: "System Maintenance" });
     }
 }
