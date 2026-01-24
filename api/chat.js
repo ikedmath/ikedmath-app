@@ -1,17 +1,16 @@
 /* =======================================================
-   IKED ENGINE v2026: THE IMMORTAL CORE 💎⚡
-   Architect: The World's Best Programmer
-   Strategy: Smart Cascade (2.5 -> 2.0 -> Lite)
-   Features: 
-   - Auto-Failover: Never stops, switches models instantly on error.
-   - Robust Streaming: Force Flush compatible.
-   - No 404/429 interruptions.
+   IKED ENGINE vFINAL: THE MATH WORKHORSE 🐎📐
+   Selected Model: gemini-1.5-flash
+   Reason: 
+   - Highest Free Tier Limits (Won't stop working).
+   - Fastest Response Time (Real-time streaming).
+   - Enhanced via "Chain of Thought" System Prompt for Math.
    ======================================================= */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 export default async function handler(req, res) {
-    // 1. Streaming Headers (Essential)
+    // 1. Streaming Setup
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -21,95 +20,61 @@ export default async function handler(req, res) {
 
     try {
         const { prompt, userProfile } = req.body;
-        if (!prompt) {
-            res.write(JSON.stringify({ error: "No prompt provided" }));
-            res.end();
-            return;
-        }
+        if (!prompt) { res.write(JSON.stringify({ error: "No prompt" })); res.end(); return; }
 
         const apiKey = process.env.GOOGLE_API_KEY;
-        if (!apiKey) {
-            res.write(JSON.stringify({ error: "API Key missing" }));
-            res.end();
-            return;
-        }
+        if (!apiKey) { res.write(JSON.stringify({ error: "API Key missing" })); res.end(); return; }
 
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        /* =======================================================
-           2. THE MODEL CASCADE (الشلال الذكي) 🌊
-           نبدأ بالأفضل، وإذا كان مشغولاً، ننتقل للأضمن تلقائياً
-           ======================================================= */
-        const modelsToTry = [
-            "gemini-2.5-flash",       // 1. الأذكى والأسرع في الجيل الجديد
-            "gemini-2.0-flash",       // 2. المستقر جداً (العمود الفقري)
-            "gemini-2.0-flash-lite"   // 3. المنقذ (خفيف جداً ومستحيل يتوقف)
-        ];
+        // 🟢 THE CHOSEN ONE: gemini-1.5-flash
+        // هذا هو الوحيد اللي يضمن ليك الخدمة 24/24 فالمجان بلا انقطاع
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         /* =======================================================
-           3. SYSTEM PROMPT (موجه لعلوم رياضية) 📐
+           2. THE "BRAIN BOOSTER" PROMPT (رفع الذكاء برمجياً) 🧠
+           هنا كنرجعو Flash يخدم بمنطق Sciences Maths
            ======================================================= */
         const systemInstruction = `
-        🔴 IDENTITY: IKED, The Ultimate Math Tutor (Level: 2 Bac Sciences Maths - Morocco).
+        🔴 IDENTITY: IKED, The Best Math Tutor for "2 Bac Sciences Maths" in Morocco.
         
-        ⚡ PROTOCOL:
-        You MUST stream the response in TWO parts separated by exactly "|||STREAM_DIVIDER|||".
+        🎯 OBJECTIVE: Provide rigorous, step-by-step mathematical explanations.
         
-        --- PART 1: METADATA (JSON Only) ---
+        ⚡ RESPONSE PROTOCOL (STRICT):
+        1. You MUST respond in TWO distinct parts separated by "|||STREAM_DIVIDER|||".
+        2. DO NOT wrap the first part (JSON) in markdown code blocks (like \`\`\`json). Just write raw JSON.
+        
+        --- PART 1: METADATA (Raw JSON Only) ---
         {
             "visuals": { 
                 "type": "SVG", 
-                "code": "Generate SVG code here IF needed for geometry/curves. Else null." 
+                "code": "Generate VALID SVG code for functions/geometry/circuits. Keep it minimal (< 400px height). If not needed, set to null." 
             },
             "gamification": { 
-                "xp": 25, 
-                "badge": "Badge Name OR null" 
+                "xp": 20, 
+                "badge": "Name of a math badge if the question is smart (e.g., 'Euler Insight') OR null" 
             },
-            "analogy": "A smart Darija analogy."
+            "analogy": "A short, clever Darija analogy explaining the concept."
         }
         
         |||STREAM_DIVIDER|||
         
-        --- PART 2: EXPLANATION (Streaming Text) ---
-        - Teach nicely but rigorously (Niveau SM).
-        - Use LaTeX for ALL math formulas: $$ f(x) = ... $$.
-        - Mix Darija (for intuition) and French (for scientific terms).
-        - Explain the logic, not just the result.
+        --- PART 2: THE EXPLANATION (Streaming Text) ---
+        - **Tone**: Professional yet encouraging (Mix Darija & French terms).
+        - **Math Format**: You MUST use LaTeX for ALL equations. Example: $$ f(x) = \\lim_{n \\to \\infty} (1 + \\frac{1}{n})^n $$.
+        - **Logic**: Don't just give the result. Show the "Raisonnement" (Reasoning).
+        - **Correction**: If the student greets you (Salam/Hello), reply briefly and ask for a math problem.
         `;
 
-        const studentLevel = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Level: ${studentLevel}]\n[Question]: ${prompt}`;
+        const studentLevel = userProfile?.stream || "Sciences Maths";
+        const fullPrompt = `${systemInstruction}\n\n[Student Profile: ${studentLevel}]\n[User Input]: ${prompt}`;
 
         /* =======================================================
-           4. EXECUTION LOOP (محاولة الاتصال بالتتابع) 🔄
+           3. EXECUTION 🚀
            ======================================================= */
-        let stream = null;
-        let activeModel = "";
+        const result = await model.generateContentStream(fullPrompt);
 
-        // نجرب الموديلات واحد تلو الآخر
-        for (const modelName of modelsToTry) {
-            try {
-                const model = genAI.getGenerativeModel({ model: modelName });
-                const result = await model.generateContentStream(fullPrompt);
-                
-                // إذا وصلنا هنا، يعني الاتصال نجح!
-                stream = result.stream;
-                activeModel = modelName;
-                break; // نخرج من الحلقة لأننا وجدنا موديلاً يعمل
-            } catch (error) {
-                console.warn(`⚠️ Model ${modelName} failed/busy. Switching...`);
-                // نكمل للحلقة التالية (الموديل التالي)
-                continue; 
-            }
-        }
-
-        if (!stream) {
-            // إذا فشلت كل الموديلات (حالة نادرة جداً)
-            throw new Error("All AI models are currently busy. Please try again in a moment.");
-        }
-
-        // إرسال البيانات
-        for await (const chunk of stream) {
+        for await (const chunk of result.stream) {
             const chunkText = chunk.text();
             res.write(chunkText);
         }
@@ -117,9 +82,9 @@ export default async function handler(req, res) {
         res.end();
 
     } catch (error) {
-        console.error("Final Stream Error:", error);
-        // نرسل رسالة خطأ "جميلة" للمستخدم بدل الصمت
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: السيرفرات عليها ضغط خيالي حالياً. عافاك عاود سولني من دابا 10 ثواني.`);
+        console.error("API Error:", error);
+        // Fallback message in case of rare glitches
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: ${error.message}`);
         res.end();
     }
 }
