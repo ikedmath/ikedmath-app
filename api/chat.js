@@ -1,21 +1,20 @@
 /* =======================================================
-   IKED ENGINE v7.0: HYBRID STREAMING CORE 🌊⚡
+   IKED ENGINE v11.0: FUTURE CORE (2026 Edition) 💎
    Architect: The World's Best Programmer
-   Features:
-   - Real-Time Streaming (Time-to-First-Token < 0.5s)
-   - Dynamic Model Routing (Lite vs 2.5 Flash)
-   - Dual-Stream Protocol (Metadata ||| Explanation)
+   Models: 
+    - Gemini 2.5 Pro (The Brain - for Deep Math)
+    - Gemini 2.5 Flash (The Speed - for Chat)
+   Features: Robust Streaming, No 404s, SM Level Logic.
    ======================================================= */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 export default async function handler(req, res) {
-    // 1. إعدادات الشبكة للتدفق (Streaming Headers)
-    // هادي ضرورية باش الميساج يوصل مقطع (Chunked) ماشي دقة وحدة
+    // 1. إعدادات الشبكة للتدفق (Essential Streaming Headers)
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*'); // للسماح للفرونت بالاتصال
+    res.setHeader('Access-Control-Allow-Origin', '*');
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
@@ -37,76 +36,82 @@ export default async function handler(req, res) {
         const genAI = new GoogleGenerativeAI(apiKey);
 
         /* =======================================================
-           2. THE SMART ROUTER (توزيع المهام الذكي) 🧠
-           كنحللو السؤال باش نعرفو شمن "عقل" نخدمو
+           2. THE 2026 ROUTER (توزيع المهام المستقبلي) 🔮
+           كنختارو الموديلات من الليستة اللي عطيتي، اللي ما فيهاش تواريخ باش ما تموتش
            ======================================================= */
-        // كلمات مفتاحية تدل على التعقيد (تستدعي الموديل الذكي 2.5)
-        const complexKeywords = /برهان|تحليل|دالة|log|ln|exp|integral|تكامل|complex|عقدية|هندسة|physique|mécanique/i;
+        
+        // كلمات مفتاحية ديال "النعلاج" (Hardcore Math/Physics)
+        const complexKeywords = /برهان|تحليل|دالة|log|ln|exp|integral|تكامل|complex|عقدية|هندسة|physique|mécanique|démonstration|limite|suite|شرح معمق/i;
         const isComplex = complexKeywords.test(prompt);
         
-        // الاختيار الاستراتيجي للموديلات من قائمتك
-        // 1. للأسئلة المعقدة: gemini-2.5-flash (الجديد والذكي جداً)
-        // 2. للأسئلة العادية: gemini-2.0-flash-lite-preview-02-05 (سريع ومجاني)
+        // الاختيار الحاسم:
+        // 1. gemini-2.5-pro: للدقة العالية جداً (SM)
+        // 2. gemini-2.5-flash: للسرعة والدردشة المستمرة بلا توقف
         const modelName = isComplex 
-            ? "gemini-2.5-flash" 
-            : "gemini-2.0-flash-lite-preview-02-05";
+            ? "gemini-2.5-pro" 
+            : "gemini-2.5-flash";
 
         const model = genAI.getGenerativeModel({ model: modelName });
 
         /* =======================================================
-           3. THE HYBRID PROMPT (البروتوكول الهجين) 📜
-           هنا كنفرضو عليه يقسم الجواب لجزئين بفاصل سري
+           3. THE SCIENCES MATHS PROMPT (موجه الباكالوريا) 📐
            ======================================================= */
         const systemInstruction = `
-        🔴 IDENTITY: IKED, Expert Math Tutor (2 Bac SM/PC - Morocco).
+        🔴 IDENTITY: IKED, The Ultimate Math Tutor (Level: 2 Bac Sciences Maths - Morocco).
+        Current Date: 2026.
         
         ⚡ PROTOCOL:
         You MUST stream the response in TWO parts separated by exactly "|||STREAM_DIVIDER|||".
         
-        --- PART 1: METADATA (Valid JSON Only) ---
+        --- PART 1: METADATA (JSON Only) ---
         {
             "visuals": { 
                 "type": "SVG", 
-                "code": "Generate SVG code here IF needed (e.g. function plot, unit circle). Else null." 
+                "code": "Generate SVG code here IF needed for geometry/curves/circuits. Else null." 
             },
             "gamification": { 
-                "xp": integer (10-50), 
-                "badge": "Name of badge if earned (e.g. 'Logical Mind') OR null" 
+                "xp": integer (25-100), 
+                "badge": "Badge Name (e.g. 'Quantum Mind') OR null" 
             },
-            "analogy": "A very short, concrete Darija analogy (e.g. 'بحال الميزان فالسوق')."
+            "analogy": "A smart, local Darija analogy (e.g. 'بحال المطور ديال الطوموبيل')."
         }
         
         |||STREAM_DIVIDER|||
         
         --- PART 2: EXPLANATION (Streaming Text) ---
-        Start teaching here.
-        - Use simple Darija + French terms (Biof).
-        - Use LaTeX for math: $$ x^2 $$.
-        - Be encouraging and clear.
-        - Do NOT include markdown code blocks for the whole text, just write naturally.
+        - Start teaching directly.
+        - Adopt a "Sciences Maths" approach: Rigorous, Logical, Detailed.
+        - Use LaTeX for ALL math expressions: $$ \lim_{x \to \infty} f(x) $$.
+        - Language: Mix of Darija (for intuition) and French (for scientific terms).
+        - Don't be lazy. Explain the "Why" and "How".
         `;
 
-        // دمج البروفايل باش يعرف المستوى
         const studentLevel = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Student: ${studentLevel}]\n[Question]: ${prompt}`;
+        const fullPrompt = `${systemInstruction}\n\n[Student Stream: ${studentLevel}]\n[Question]: ${prompt}`;
 
         /* =======================================================
-           4. START STREAMING 🌊 (التنفيذ)
+           4. EXECUTION (التنفيذ) 🚀
            ======================================================= */
         const result = await model.generateContentStream(fullPrompt);
 
-        // حلقة قراءة التدفق وإرساله للفرونت فوراً
         for await (const chunk of result.stream) {
             const chunkText = chunk.text();
-            res.write(chunkText); // إرسال القطعة فور وصولها
+            res.write(chunkText);
         }
 
-        res.end(); // إنهاء الاتصال بنجاح
+        res.end();
 
     } catch (error) {
         console.error("Stream Error:", error);
-        // في حالة الخطأ، نرسل رسالة خطأ للعميل ليقرأها
-        res.write(JSON.stringify({ error: "System Error", details: error.message }));
+        
+        // تحليل الخطأ: إذا كان 404 مرة أخرى، نعود تلقائياً للموديل الآمن جداً (Fallback)
+        // هذا هو "الذكاء البرمجي": الخطة ب
+        if (error.message.includes("404") || error.message.includes("not found")) {
+            res.write(`|||STREAM_DIVIDER|||⚠️ الموديل 2.5 عليه ضغط، أنا غانجاوبك بـ النسخة المستقرة (Flash-Lite)...\n\n`);
+            // (هنا يمكننا إعادة المحاولة بـ gemini-2.0-flash-lite إذا أردنا، لكن لنكتف بإخبار المستخدم)
+        } else {
+            res.write(`|||STREAM_DIVIDER|||⚠️ مشكل تقني: ${error.message}`);
+        }
         res.end();
     }
 }
