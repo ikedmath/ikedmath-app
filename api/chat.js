@@ -1,16 +1,17 @@
 /* =======================================================
-   IKED ENGINE vFINAL: THE MATH WORKHORSE 🐎📐
-   Selected Model: gemini-1.5-flash
-   Reason: 
-   - Highest Free Tier Limits (Won't stop working).
-   - Fastest Response Time (Real-time streaming).
-   - Enhanced via "Chain of Thought" System Prompt for Math.
+   IKED ENGINE v2026: THE REAL LIST EDITION 💎
+   Architect: The World's Best Programmer
+   Target: 2 Bac Sciences Maths (Morocco)
+   Models (From User List): 
+    1. gemini-2.5-flash (Smartest Flash)
+    2. gemini-2.0-flash (Stable)
+    3. gemini-2.0-flash-lite (Unstoppable/High Limits)
    ======================================================= */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 export default async function handler(req, res) {
-    // 1. Streaming Setup
+    // 1. Streaming Headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -27,54 +28,74 @@ export default async function handler(req, res) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🟢 THE CHOSEN ONE: gemini-1.5-flash
-        // هذا هو الوحيد اللي يضمن ليك الخدمة 24/24 فالمجان بلا انقطاع
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        /* =======================================================
+           2. THE 2026 MODEL CASCADE (الشلال المصحح) 🌊
+           كنستعملو غير الموديلات اللي كاينين فالليستة ديالك
+           ======================================================= */
+        const modelsToTry = [
+            "gemini-2.5-flash",       // الأولوية 1: الذكاء الجديد (من قائمتك)
+            "gemini-2.0-flash",       // الأولوية 2: الاستقرار
+            "gemini-2.0-flash-lite"   // الأولوية 3: السرعة والكوتا العالية (المنقذ)
+        ];
 
         /* =======================================================
-           2. THE "BRAIN BOOSTER" PROMPT (رفع الذكاء برمجياً) 🧠
-           هنا كنرجعو Flash يخدم بمنطق Sciences Maths
+           3. SYSTEM PROMPT (رفع مستوى الذكاء للموديلات الخفيفة) 🧠
            ======================================================= */
         const systemInstruction = `
-        🔴 IDENTITY: IKED, The Best Math Tutor for "2 Bac Sciences Maths" in Morocco.
+        🔴 IDENTITY: IKED, Elite Math Tutor (2 Bac Sciences Maths - Morocco).
         
-        🎯 OBJECTIVE: Provide rigorous, step-by-step mathematical explanations.
+        ⚡ RESPONSE PROTOCOL:
+        1.  Response format: JSON_METADATA + "|||STREAM_DIVIDER|||" + EXPLANATION.
+        2.  Strictly NO markdown code blocks (\`\`\`) wrapping the JSON.
         
-        ⚡ RESPONSE PROTOCOL (STRICT):
-        1. You MUST respond in TWO distinct parts separated by "|||STREAM_DIVIDER|||".
-        2. DO NOT wrap the first part (JSON) in markdown code blocks (like \`\`\`json). Just write raw JSON.
-        
-        --- PART 1: METADATA (Raw JSON Only) ---
+        --- PART 1: METADATA (JSON Only) ---
         {
-            "visuals": { 
-                "type": "SVG", 
-                "code": "Generate VALID SVG code for functions/geometry/circuits. Keep it minimal (< 400px height). If not needed, set to null." 
-            },
-            "gamification": { 
-                "xp": 20, 
-                "badge": "Name of a math badge if the question is smart (e.g., 'Euler Insight') OR null" 
-            },
-            "analogy": "A short, clever Darija analogy explaining the concept."
+            "visuals": { "type": "SVG", "code": "Generate valid SVG code for geometry/curves IF needed. Else null." },
+            "gamification": { "xp": 25, "badge": "Badge Name OR null" },
+            "analogy": "Short Darija analogy."
         }
         
         |||STREAM_DIVIDER|||
         
-        --- PART 2: THE EXPLANATION (Streaming Text) ---
-        - **Tone**: Professional yet encouraging (Mix Darija & French terms).
-        - **Math Format**: You MUST use LaTeX for ALL equations. Example: $$ f(x) = \\lim_{n \\to \\infty} (1 + \\frac{1}{n})^n $$.
-        - **Logic**: Don't just give the result. Show the "Raisonnement" (Reasoning).
-        - **Correction**: If the student greets you (Salam/Hello), reply briefly and ask for a math problem.
+        --- PART 2: EXPLANATION (Text) ---
+        - Start teaching directly.
+        - Adopt a "Sciences Maths" rigor.
+        - Use LaTeX for ALL math: $$ f(x) = ... $$.
+        - Explanation must be step-by-step logic, not just results.
         `;
 
-        const studentLevel = userProfile?.stream || "Sciences Maths";
-        const fullPrompt = `${systemInstruction}\n\n[Student Profile: ${studentLevel}]\n[User Input]: ${prompt}`;
+        const studentLevel = userProfile?.stream || "SM";
+        const fullPrompt = `${systemInstruction}\n\n[Level: ${studentLevel}]\n[Question]: ${prompt}`;
 
         /* =======================================================
-           3. EXECUTION 🚀
+           4. EXECUTION LOOP 🔄
            ======================================================= */
-        const result = await model.generateContentStream(fullPrompt);
+        let stream = null;
+        let activeModel = "";
 
-        for await (const chunk of result.stream) {
+        for (const modelName of modelsToTry) {
+            try {
+                // console.log(`Trying model: ${modelName}...`); 
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContentStream(fullPrompt);
+                
+                // إذا داز الستريم مزيان، كنحبسو التجريب
+                stream = result.stream;
+                activeModel = modelName;
+                break; 
+            } catch (error) {
+                // console.warn(`Model ${modelName} failed/busy. Switching...`);
+                continue; // جرب الموديل اللي تابعو
+            }
+        }
+
+        if (!stream) {
+            // إلا فشلو كاملين (حالة نادرة جدا مع Lite)
+            throw new Error("All models are busy. Please check Quota.");
+        }
+
+        // إرسال البيانات
+        for await (const chunk of stream) {
             const chunkText = chunk.text();
             res.write(chunkText);
         }
@@ -82,9 +103,8 @@ export default async function handler(req, res) {
         res.end();
 
     } catch (error) {
-        console.error("API Error:", error);
-        // Fallback message in case of rare glitches
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: ${error.message}`);
+        console.error("Critical Error:", error);
+        res.write(`|||STREAM_DIVIDER|||⚠️ عذرًا، كاين ضغط على Google API حالياً. عاود سولني دابا.`);
         res.end();
     }
 }
