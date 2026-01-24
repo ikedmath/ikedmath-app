@@ -1,30 +1,34 @@
 /* =========================================
-   IKED CSS ENGINE vFINAL (Guaranteed Fix) 🛡️
+   IKED CSS ENGINE v13.0 (Final Stable Version) 🚀
    Architect: The World's Best Programmer
-   Status: 100% Working
+   Includes: 
+   - Profile Image Force Fix (!important)
+   - Rounded Square Navigation Buttons
+   - Enhanced Math & Visuals
    ========================================= */
 
 /* 1. المتغيرات الهندسية (Base Variables) */
 :root {
-    --bg-core: #0b1121;
-    --bg-surface-1: #161f32;
-    --bg-surface-2: #1e293b;
+    --bg-core: #0b1121;       /* Deepest Slate */
+    --bg-surface-1: #161f32;  /* Cards */
+    --bg-surface-2: #1e293b;  /* Inputs/Hover/Buttons */
     
-    --primary-indigo: #6366f1;
-    --accent-amber: #f59e0b;
-    --success-teal: #14b8a6;
+    --primary-indigo: #6366f1; /* Intelligence */
+    --accent-amber: #f59e0b;   /* Warmth */
+    --success-teal: #14b8a6;   /* Success */
     
-    --text-bright: #e2e8f0;
-    --text-muted: #94a3b8;
+    --text-bright: #e2e8f0;    /* Anti-glare White */
+    --text-muted: #94a3b8;     /* Medium Grey */
     
     --border-subtle: rgba(148, 163, 184, 0.15);
     --glow-indigo: 0 0 20px rgba(99, 102, 241, 0.25);
     --glow-amber: 0 0 20px rgba(245, 158, 11, 0.25);
     
-    --visual-bg: #0f172a;
+    --code-bg: #111827;       /* خلفية الكود */
+    --visual-bg: #0f172a;     /* خلفية الرسم */
 }
 
-/* 2. الأساسيات */
+/* 2. الأساسيات (Reset & Body) */
 * {
     box-sizing: border-box; margin: 0; padding: 0;
     -webkit-tap-highlight-color: transparent;
@@ -42,7 +46,7 @@ body {
     line-height: 1.6;
 }
 
-/* 3. الشاشات */
+/* 3. اللوغو والشاشات */
 .center-content {
     flex: 1; display: flex; flex-direction: column;
     justify-content: center; align-items: center; text-align: center;
@@ -57,7 +61,8 @@ body {
     box-shadow: var(--glow-indigo), inset 0 0 20px rgba(0,0,0,0.2);
 }
 .logo-pulse i {
-    transform: rotate(-45deg); font-size: 48px; color: var(--accent-amber); z-index: 2;
+    transform: rotate(-45deg); font-size: 48px; color: var(--accent-amber);
+    filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.4)); z-index: 2;
 }
 .brand-name {
     font-size: 32px; font-weight: 900; letter-spacing: 1px;
@@ -73,9 +78,10 @@ body {
 }
 .hidden { display: none !important; opacity: 0; pointer-events: none; }
 
-/* 4. مكونات البطاقات والرسوميات */
+/* 4. مكونات البطاقات والرسوميات (Cards & Visuals) */
 .iked-card { display: flex; flex-direction: column; gap: 12px; }
 
+/* صندوق الرسم البياني */
 .visual-container {
     background: var(--visual-bg);
     border: 1px solid var(--border-subtle);
@@ -95,6 +101,7 @@ body {
     border-top: 1px dashed var(--border-subtle); padding-top: 8px;
 }
 
+/* صندوق التشبيه */
 .analogy-box {
     background: rgba(245, 158, 11, 0.08);
     border-left: 3px solid var(--accent-amber);
@@ -105,7 +112,35 @@ body {
     margin-top: 8px;
 }
 
-/* 5. نماذج الإدخال */
+/* سؤال التفاعل */
+.feedback-question {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle);
+    font-weight: 700; color: var(--primary-indigo); font-size: 14px;
+}
+
+/* تنسيق الشرح */
+.explanation-section { font-size: 15px; line-height: 1.7; }
+.explanation-section code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 5px; border-radius: 4px;
+    font-family: monospace; font-size: 0.9em;
+}
+
+/* 5. النوتيفيكاسيون (Toast) */
+.badge-toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--accent-amber);
+    color: var(--text-bright);
+    padding: 12px 24px; border-radius: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), var(--glow-amber);
+    z-index: 9999;
+    animation: slideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex; align-items: center; gap: 10px;
+}
+@keyframes slideDown { from { top: -60px; opacity: 0; } to { top: 20px; opacity: 1; } }
+
+/* 6. نماذج الإدخال (Auth & Inputs) */
 .auth-container { width: 100%; max-width: 420px; margin: auto; padding: 30px; }
 .auth-header h2 { font-size: 26px; color: var(--text-bright); margin-bottom: 10px; }
 .auth-header p { color: var(--text-muted); margin-bottom: 35px; }
@@ -115,7 +150,7 @@ input[type="text"] {
     width: 100%; padding: 16px; background: var(--bg-surface-1);
     border: 2px solid transparent; border-radius: 14px;
     color: var(--text-bright); font-size: 16px; outline: none;
-    transition: 0.3s all;
+    transition: 0.3s all; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
 }
 input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--primary-indigo); box-shadow: var(--glow-indigo); }
 
@@ -123,7 +158,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 .stream-option {
     background: var(--bg-surface-1); border: 2px solid var(--border-subtle);
     border-radius: 12px; padding: 18px 10px; text-align: center; cursor: pointer;
-    transition: 0.3s all;
+    transition: 0.3s all; position: relative; overflow: hidden;
 }
 .stream-option.selected { background: rgba(99, 102, 241, 0.15); border-color: var(--primary-indigo); }
 
@@ -136,14 +171,14 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 }
 .btn-main:active { transform: scale(0.98); }
 
-/* 6. لوحة التحكم والبروفيل */
+/* 7. لوحة التحكم والبروفيل (Dashboard) */
 .app-top-bar {
     height: 70px; padding: 0 20px; background: var(--bg-surface-1);
     border-bottom: 1px solid var(--border-subtle);
     display: flex; justify-content: space-between; align-items: center;
 }
 
-/* 🔥🔥 التصحيح النهائي للبروفيل 🔥🔥 */
+/* 🔥🔥 التصحيح النووي للبروفيل (!important) 🔥🔥 */
 .avatar-circle {
     width: 42px; height: 42px;
     background: linear-gradient(135deg, var(--accent-amber), #d97706);
@@ -152,11 +187,10 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     font-weight: 800; font-size: 18px; color: var(--bg-core);
     box-shadow: var(--glow-amber);
     
-    /* هنا السر: 100% 100% بلا مزدوجات */
-    background-size: 100% 100%;
-    background-position: center;
+    /* الفرض الإجباري 100% بدون مزدوجات */
+    background-size: 100% 100% !important;
+    background-position: center center !important;
     background-repeat: no-repeat;
-    
     border: 2px solid var(--bg-surface-2);
 }
 
@@ -171,8 +205,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .dash-card {
     background: var(--bg-surface-1); border: 1px solid var(--border-subtle);
-    border-radius: 18px; padding: 22px; transition: 0.3s all border-color;
-    cursor: pointer;
+    border-radius: 18px; padding: 22px; transition: 0.3s all border-color; cursor: pointer;
 }
 .dash-card:hover { border-color: rgba(99, 102, 241, 0.5); }
 .ai-card { grid-column: span 2; background: linear-gradient(160deg, rgba(99, 102, 241, 0.1) 0%, var(--bg-surface-1) 60%); }
@@ -184,14 +217,15 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 .dash-card h4 { font-size: 16px; color: var(--text-bright); }
 .action-link { font-size: 12px; color: var(--primary-indigo); font-weight: 700; }
 
-/* 7. واجهة الشات */
+/* 8. واجهة الشات (Chat Interface) */
 .sticky-view-header { 
     display: flex; justify-content: space-between; align-items: center; 
-    margin-bottom: 20px; position: sticky; top: 0; z-index: 5;
+    margin-bottom: 20px; 
+    position: sticky; top: 0; z-index: 5; /* التثبيت */
 }
 .header-title h4 { font-size: 16px; color: var(--text-bright); }
 
-/* الأزرار المصححة */
+/* 🔥🔥 الأزرار الجديدة (Rounded Square) 🔥🔥 */
 .btn-icon {
     width: 40px; height: 40px;
     border-radius: 12px;
@@ -204,6 +238,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     transition: 0.2s all;
 }
 .btn-icon:active { transform: scale(0.95); background: var(--bg-surface-1); }
+.btn-icon i { pointer-events: none; } /* حماية الأيقونة من التفاعل */
 
 .input-dock-wrapper {
     position: fixed; bottom: 0; left: 0; width: 100%;
@@ -225,6 +260,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     font-size: 18px; transition: 0.2s;
 }
 .dock-action-btn:active { transform: scale(0.95); }
+
 .dock-send-btn { 
     width: 48px; height: 48px; border-radius: 12px; 
     background: var(--primary-indigo); color: white; border: none; 
@@ -242,11 +278,9 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     background: var(--primary-indigo); color: white; align-self: flex-end; margin-left: auto;
     box-shadow: var(--glow-indigo);
 }
-.explanation-section { font-size: 15px; line-height: 1.7; }
-.explanation-section h3, .explanation-section h4 { margin-top: 10px; color: var(--primary-indigo); }
-.explanation-section ul { margin-right: 20px; margin-bottom: 10px; }
+.chat-container { display: flex; flex-direction: column; }
 
-/* 8. القائمة الجانبية */
+/* 9. القائمة الجانبية (Sidebar) */
 .drawer-overlay {
     position: fixed; inset: 0; background: rgba(11, 17, 33, 0.7); backdrop-filter: blur(3px);
     z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
@@ -263,7 +297,9 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 .chat-drawer.open { transform: translateX(0); }
 
 .drawer-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); }
-.btn-icon-small { background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; }
+.btn-icon-small { 
+    background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; 
+}
 .btn-new-chat {
     margin: 15px; padding: 12px; background: var(--primary-indigo); color: white;
     border: none; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px;
