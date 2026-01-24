@@ -172,7 +172,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     display: flex; justify-content: center; align-items: center;
     font-weight: 800; font-size: 18px; color: var(--bg-core); 
     box-shadow: var(--glow-amber);
-    background-size: cover;      
+    background-size: "100% 100%";      
     background-position: center top; /* ✅ هاهي التصحيحة (center top) */
     background-repeat: no-repeat;
     border: 2px solid var(--bg-surface-2); 
