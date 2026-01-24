@@ -1,11 +1,8 @@
 /* =======================================================
-   IKED ENGINE v2026: THE REAL LIST EDITION 💎
+   IKED ENGINE vFINAL 2026: EXACT VERSIONS EDITION 🎯
    Architect: The World's Best Programmer
-   Target: 2 Bac Sciences Maths (Morocco)
-   Models (From User List): 
-    1. gemini-2.5-flash (Smartest Flash)
-    2. gemini-2.0-flash (Stable)
-    3. gemini-2.0-flash-lite (Unstoppable/High Limits)
+   Strategy: Use EXACT "Lite" & "Preview" versions from User List.
+   Why? To bypass "Quota" limits on generic aliases.
    ======================================================= */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -29,24 +26,25 @@ export default async function handler(req, res) {
         const genAI = new GoogleGenerativeAI(apiKey);
 
         /* =======================================================
-           2. THE 2026 MODEL CASCADE (الشلال المصحح) 🌊
-           كنستعملو غير الموديلات اللي كاينين فالليستة ديالك
+           2. THE EXACT MODEL LIST (من قائمتك حرفياً) 📋
+           كنسبقو "Lite" حيت هو اللي فيه الكوتا طالعة ومستحيل يتبلوكا
            ======================================================= */
         const modelsToTry = [
-            "gemini-2.5-flash",       // الأولوية 1: الذكاء الجديد (من قائمتك)
-            "gemini-2.0-flash",       // الأولوية 2: الاستقرار
-            "gemini-2.0-flash-lite"   // الأولوية 3: السرعة والكوتا العالية (المنقذ)
+            "gemini-2.0-flash-lite-preview-02-05",  // 1. الموديل الخفيف المحدد بالتاريخ (الأضمن)
+            "gemini-2.5-flash-lite-preview-09-2025", // 2. موديل خفيف جديد (احتياط)
+            "gemini-2.0-flash-exp",                 // 3. موديل تجريبي قوي (للحالات الصعبة)
+            "gemini-flash-lite-latest"              // 4. آخر محاولة
         ];
 
         /* =======================================================
-           3. SYSTEM PROMPT (رفع مستوى الذكاء للموديلات الخفيفة) 🧠
+           3. SYSTEM PROMPT (موجه العلوم الرياضية) 📐
            ======================================================= */
         const systemInstruction = `
-        🔴 IDENTITY: IKED, Elite Math Tutor (2 Bac Sciences Maths - Morocco).
+        🔴 IDENTITY: IKED, Expert Math Tutor (2 Bac Sciences Maths - Morocco).
         
-        ⚡ RESPONSE PROTOCOL:
-        1.  Response format: JSON_METADATA + "|||STREAM_DIVIDER|||" + EXPLANATION.
-        2.  Strictly NO markdown code blocks (\`\`\`) wrapping the JSON.
+        ⚡ PROTOCOL:
+        1. Response format: JSON_METADATA + "|||STREAM_DIVIDER|||" + EXPLANATION.
+        2. STRICTLY NO markdown code blocks (\`\`\`) wrapping the JSON.
         
         --- PART 1: METADATA (JSON Only) ---
         {
@@ -57,41 +55,43 @@ export default async function handler(req, res) {
         
         |||STREAM_DIVIDER|||
         
-        --- PART 2: EXPLANATION (Text) ---
+        --- PART 2: EXPLANATION ---
         - Start teaching directly.
         - Adopt a "Sciences Maths" rigor.
         - Use LaTeX for ALL math: $$ f(x) = ... $$.
-        - Explanation must be step-by-step logic, not just results.
+        - Language: Mix of Darija (intuition) and French (terms).
         `;
 
         const studentLevel = userProfile?.stream || "SM";
         const fullPrompt = `${systemInstruction}\n\n[Level: ${studentLevel}]\n[Question]: ${prompt}`;
 
         /* =======================================================
-           4. EXECUTION LOOP 🔄
+           4. EXECUTION LOOP (الذكاء في التبديل) 🔄
            ======================================================= */
         let stream = null;
         let activeModel = "";
+        let lastError = "";
 
         for (const modelName of modelsToTry) {
             try {
-                // console.log(`Trying model: ${modelName}...`); 
+                // console.log(`Trying: ${modelName}`);
                 const model = genAI.getGenerativeModel({ model: modelName });
                 const result = await model.generateContentStream(fullPrompt);
                 
-                // إذا داز الستريم مزيان، كنحبسو التجريب
                 stream = result.stream;
                 activeModel = modelName;
-                break; 
+                break; // نجح الاتصال!
             } catch (error) {
-                // console.warn(`Model ${modelName} failed/busy. Switching...`);
-                continue; // جرب الموديل اللي تابعو
+                // console.warn(`Failed: ${modelName}`, error.message);
+                lastError = error.message;
+                continue; // جرب التالي فوراً
             }
         }
 
         if (!stream) {
-            // إلا فشلو كاملين (حالة نادرة جدا مع Lite)
-            throw new Error("All models are busy. Please check Quota.");
+            // تحليل الخطأ الأخير لمعرفة السبب
+            const errorDetails = lastError.includes("429") ? "Quota Exceeded" : lastError;
+            throw new Error(`All models failed. Last error: ${errorDetails}`);
         }
 
         // إرسال البيانات
@@ -103,8 +103,9 @@ export default async function handler(req, res) {
         res.end();
 
     } catch (error) {
-        console.error("Critical Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ عذرًا، كاين ضغط على Google API حالياً. عاود سولني دابا.`);
+        console.error("Critical Failure:", error);
+        // رسالة تظهر للمستخدم فالمربع
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: السيرفرات مشغولة (Quota). عافاك تسنا دقيقة وعاود.`);
         res.end();
     }
 }
