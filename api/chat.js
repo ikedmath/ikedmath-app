@@ -1,11 +1,9 @@
 /* =======================================================
-   IKED ENGINE vFINAL: THE BETA PROTOCOL 🧪🚀
+   IKED ENGINE vFINAL: THE LITE SAVIOR 🛡️
    Architect: The World's Best Programmer
-   Strategy: Force API version 'v1beta' to access Future Models.
-   Models (Strictly from 2026 List):
-    1. gemini-2.0-flash-exp (The Reliable Beast)
-    2. gemini-2.0-flash-lite-preview-02-05 (The Speedster)
-    3. gemini-2.5-flash (The New Brain)
+   Problem: Quota Exceeded on Experimental Models.
+   Solution: Prioritize "Lite" versions from User List.
+   API Version: v1beta (Strictly)
    ======================================================= */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -29,17 +27,18 @@ export default async function handler(req, res) {
         const genAI = new GoogleGenerativeAI(apiKey);
 
         /* =======================================================
-           2. THE MODEL LIST (BETA ACCESS) 🔓
-           هذه الموديلات موجودة حصرياً في v1beta.
+           2. THE LITE-FIRST STRATEGY (أسبقية الخفيف) 📋
+           كنسبقو Lite حيت هو الوحيد اللي عندو Quota طالعة ومستحيل يتبلوكا
            ======================================================= */
         const modelsToTry = [
-            "gemini-2.0-flash-exp",                 // الخيار 1: أقوى موديل تجريبي حالياً (مستقر)
-            "gemini-2.0-flash-lite-preview-02-05", // الخيار 2: أخف موديل من قائمتك
-            "gemini-2.5-flash"                      // الخيار 3: الذكاء الجديد
+            "gemini-2.0-flash-lite-preview-02-05", // المحاولة 1: هذا محدد جداً وخفيف
+            "gemini-2.0-flash-lite",                // المحاولة 2: الاسم العام للخفيف
+            "gemini-2.0-flash-exp",                 // المحاولة 3: القوي (احتياط)
+            "gemini-2.5-flash-lite-preview-09-2025" // المحاولة 4: خيار مستقبلي
         ];
 
         /* =======================================================
-           3. SYSTEM PROMPT (موجه العلوم الرياضية الصارم) 📐
+           3. SYSTEM PROMPT 📐
            ======================================================= */
         const systemInstruction = `
         🔴 IDENTITY: IKED, Expert Math Tutor (2 Bac Sciences Maths - Morocco).
@@ -68,7 +67,7 @@ export default async function handler(req, res) {
         const fullPrompt = `${systemInstruction}\n\n[Level: ${studentLevel}]\n[Question]: ${prompt}`;
 
         /* =======================================================
-           4. EXECUTION LOOP (مع إجبار V1BETA) 🔄
+           4. EXECUTION LOOP (Force v1beta) 🔄
            ======================================================= */
         let stream = null;
         let activeModel = "";
@@ -76,34 +75,34 @@ export default async function handler(req, res) {
 
         for (const modelName of modelsToTry) {
             try {
-                // HACK: هنا كنحاول نفرض الإعدادات باش يقلب ف v1beta
-                // ملاحظة: أغلب النسخ الجديدة كتمشي ل v1beta بوحدها إلا لقات 'exp' أو 'preview' فالسمية
+                // console.log(`Trying Lite Model: ${modelName}`);
+                
+                // 🔥 ضروري: v1beta باش يلقى موديلات Preview
                 const model = genAI.getGenerativeModel({ 
                     model: modelName
                 }, { 
-                    apiVersion: 'v1beta' // 🔥 المفتاح السحري
+                    apiVersion: 'v1beta' 
                 });
 
                 const result = await model.generateContentStream(fullPrompt);
                 
                 stream = result.stream;
                 activeModel = modelName;
-                // console.log(`Connected to: ${modelName}`);
                 break; 
             } catch (error) {
-                // console.warn(`Failed: ${modelName}`, error.message);
+                // console.warn(`Model ${modelName} Quota/Error: ${error.message}`);
                 lastError = error.message;
+                // كنتسناو 1 ثانية قبل ما ندوزو للموديل التالي باش نعطيو فرصة للسيرفر
+                await new Promise(r => setTimeout(r, 1000));
                 continue; 
             }
         }
 
         if (!stream) {
-            // تحليل الخطأ الأخير
-            let errorMsg = lastError;
-            if (lastError.includes("404")) errorMsg = "Models not found in v1beta (Check Name)";
-            if (lastError.includes("429")) errorMsg = "Quota Exceeded (Server Busy)";
-            
-            throw new Error(`All models failed. Reason: ${errorMsg}`);
+            // رسالة واضحة
+            let finalMsg = lastError;
+            if (lastError.includes("429")) finalMsg = "الضغط بزاف على السيرفر (Quota). تسنا شوية.";
+            throw new Error(finalMsg);
         }
 
         // إرسال البيانات
@@ -116,7 +115,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Critical Failure:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: خطأ فالاتصال (${error.message}).`);
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: ${error.message}`);
         res.end();
     }
 }
