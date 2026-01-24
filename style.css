@@ -1,7 +1,7 @@
 /* =========================================
-   IKED CSS ENGINE vFINAL (Refined UI/UX) 💎
+   IKED CSS ENGINE vFINAL (Profile Fix) 💎
    Architect: The World's Best Programmer
-   Fixes: Profile Image, Navigation Buttons, MathJax Layout
+   Fixes: Profile Image cropping (Face visibility)
    ========================================= */
 
 /* 1. المتغيرات الهندسية (Base Variables) */
@@ -164,7 +164,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     border-bottom: 1px solid var(--border-subtle);
     display: flex; justify-content: space-between; align-items: center;
 }
-/* 🔥 تصحيح البروفيل: الصورة واضحة الآن */
+/* 🔥 التعديل هنا: التركيز على Top */
 .avatar-circle {
     width: 42px; height: 42px; 
     background: linear-gradient(135deg, var(--accent-amber), #d97706);
@@ -172,10 +172,10 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     display: flex; justify-content: center; align-items: center;
     font-weight: 800; font-size: 18px; color: var(--bg-core); 
     box-shadow: var(--glow-amber);
-    background-size: cover;      /* يغطي الدائرة كاملة */
-    background-position: center; /* يوسط الصورة */
+    background-size: cover;      
+    background-position: center top; /* ✅ هاهي التصحيحة (center top) */
     background-repeat: no-repeat;
-    border: 2px solid var(--bg-surface-2); /* إطار خفيف */
+    border: 2px solid var(--bg-surface-2); 
 }
 
 .rb-widget {
@@ -211,7 +211,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 }
 .header-title h4 { font-size: 16px; color: var(--text-bright); }
 
-/* 🔥 تصحيح أزرار التنقل (الرجوع والقائمة) */
+/* أزرار التنقل */
 .btn-icon {
     width: 40px; height: 40px;
     border-radius: 12px;
