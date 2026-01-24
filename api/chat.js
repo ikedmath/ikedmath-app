@@ -1,8 +1,11 @@
 /* =======================================================
-   IKED ENGINE vFINAL 2026: EXACT VERSIONS EDITION 🎯
+   IKED ENGINE v2026: THE REALITY CHECK ✅
    Architect: The World's Best Programmer
-   Strategy: Use EXACT "Lite" & "Preview" versions from User List.
-   Why? To bypass "Quota" limits on generic aliases.
+   Status: 1.5 is DEAD. Long live 2.0 & 2.5!
+   Models (Strictly from User List):
+    1. gemini-2.0-flash (The Standard)
+    2. gemini-2.0-flash-lite (The Speedster)
+    3. gemini-2.5-flash (The New Brain)
    ======================================================= */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -26,14 +29,13 @@ export default async function handler(req, res) {
         const genAI = new GoogleGenerativeAI(apiKey);
 
         /* =======================================================
-           2. THE EXACT MODEL LIST (من قائمتك حرفياً) 📋
-           كنسبقو "Lite" حيت هو اللي فيه الكوتا طالعة ومستحيل يتبلوكا
+           2. THE VALID MODEL LIST (من قائمتك فقط - بدون 1.5) 📋
+           استخدمنا الأسماء القصيرة الموجودة في القائمة لتفادي 404
            ======================================================= */
         const modelsToTry = [
-            "gemini-2.0-flash-lite-preview-02-05",  // 1. الموديل الخفيف المحدد بالتاريخ (الأضمن)
-            "gemini-2.5-flash-lite-preview-09-2025", // 2. موديل خفيف جديد (احتياط)
-            "gemini-2.0-flash-exp",                 // 3. موديل تجريبي قوي (للحالات الصعبة)
-            "gemini-flash-lite-latest"              // 4. آخر محاولة
+            "gemini-2.0-flash",       // الخيار 1: الموديل الرسمي والمستقر
+            "gemini-2.0-flash-lite",  // الخيار 2: الموديل الخفيف (Quota Friendly)
+            "gemini-2.5-flash"        // الخيار 3: الموديل الجديد
         ];
 
         /* =======================================================
@@ -66,7 +68,7 @@ export default async function handler(req, res) {
         const fullPrompt = `${systemInstruction}\n\n[Level: ${studentLevel}]\n[Question]: ${prompt}`;
 
         /* =======================================================
-           4. EXECUTION LOOP (الذكاء في التبديل) 🔄
+           4. EXECUTION LOOP (التبديل الذكي) 🔄
            ======================================================= */
         let stream = null;
         let activeModel = "";
@@ -74,24 +76,24 @@ export default async function handler(req, res) {
 
         for (const modelName of modelsToTry) {
             try {
-                // console.log(`Trying: ${modelName}`);
+                // console.log(`Attempting: ${modelName}`);
                 const model = genAI.getGenerativeModel({ model: modelName });
                 const result = await model.generateContentStream(fullPrompt);
                 
                 stream = result.stream;
                 activeModel = modelName;
-                break; // نجح الاتصال!
+                break; // نجحنا!
             } catch (error) {
-                // console.warn(`Failed: ${modelName}`, error.message);
+                // console.warn(`Failed: ${modelName}`);
                 lastError = error.message;
-                continue; // جرب التالي فوراً
+                continue; // دوز للي موراه
             }
         }
 
         if (!stream) {
-            // تحليل الخطأ الأخير لمعرفة السبب
-            const errorDetails = lastError.includes("429") ? "Quota Exceeded" : lastError;
-            throw new Error(`All models failed. Last error: ${errorDetails}`);
+            // رسالة خطأ واضحة في حالة فشل الجميع
+            const errorMsg = lastError.includes("404") ? "Models not found (Check API names)" : "Server Busy";
+            throw new Error(`All models failed. Last Error: ${errorMsg}`);
         }
 
         // إرسال البيانات
@@ -104,8 +106,8 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Critical Failure:", error);
-        // رسالة تظهر للمستخدم فالمربع
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: السيرفرات مشغولة (Quota). عافاك تسنا دقيقة وعاود.`);
+        // رسالة الطوارئ
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: كاين مشكل فالاتصال (${error.message}). عاود المحاولة.`);
         res.end();
     }
 }
