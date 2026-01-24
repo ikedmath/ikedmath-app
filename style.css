@@ -1,8 +1,9 @@
 /* =========================================
-   IKED CSS ENGINE v12.0 (Enhanced for Visuals & JSON)
+   IKED CSS ENGINE v13.0 (Streaming & Visuals Final) 🎨
+   Architect: The World's Best Programmer
    ========================================= */
 
-/* 1. المتغيرات الهندسية (Base Variables - Preserved) */
+/* 1. المتغيرات الهندسية (Base Variables) */
 :root {
     --bg-core: #0b1121;       /* Deepest Slate */
     --bg-surface-1: #161f32;  /* Cards */
@@ -42,7 +43,7 @@ body {
     line-height: 1.6;
 }
 
-/* 3. اللوغو والشاشات (Hybrid Emblem & Screens) */
+/* 3. اللوغو والشاشات */
 .center-content {
     flex: 1; display: flex; flex-direction: column;
     justify-content: center; align-items: center; text-align: center;
@@ -74,81 +75,102 @@ body {
 }
 .hidden { display: none !important; opacity: 0; pointer-events: none; }
 
-/* 4. مكونات البطاقات الجديدة (The New IKED Cards) 🆕 🔥 */
+/* =========================================
+   4. مكونات البطاقات والستريمينغ (New Engine UI) 🆕 🔥
+   ========================================= */
+
 .iked-card {
     display: flex; flex-direction: column; gap: 12px;
 }
 
-/* صندوق الرسم البياني (SVG) */
+/* أ. مؤشر الكتابة المباشرة (Cursor Effect) - هام جداً ⚡ */
+.streaming-active .content-area::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 18px;
+    background-color: var(--accent-amber); /* لون الكورصور */
+    margin-right: 4px;
+    vertical-align: sub;
+    animation: blink-cursor 0.8s infinite;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+@keyframes blink-cursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* ب. صندوق الرسم البياني (SVG) */
 .visual-container {
     background: var(--visual-bg);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
-    padding: 15px;
+    padding: 20px;
     text-align: center;
     margin-bottom: 10px;
     position: relative;
     overflow: hidden;
+    animation: fadeIn 0.5s ease-out;
 }
 .visual-container svg {
     max-width: 100%; height: auto;
+    max-height: 250px; /* لضمان عدم تكبير الرسم كثيراً */
     filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.2));
 }
 .visual-caption {
-    font-size: 12px; color: var(--text-muted); margin-top: 8px;
+    font-size: 12px; color: var(--text-muted); margin-top: 12px;
     border-top: 1px dashed var(--border-subtle); padding-top: 8px;
+    font-weight: 600; letter-spacing: 0.5px;
 }
 
-/* صندوق التشبيه (Analogy) */
+/* ج. صندوق التشبيه (Analogy) */
 .analogy-box {
-    background: rgba(245, 158, 11, 0.08); /* لون كهرماني خفيف */
+    background: rgba(245, 158, 11, 0.08);
     border-left: 3px solid var(--accent-amber);
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-radius: 8px;
     font-size: 14px;
-    color: #fbbf24; /* لون النص */
+    color: #fbbf24;
     margin-top: 8px;
+    animation: slideInRight 0.4s ease-out;
 }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
 
-/* سؤال التفاعل (Feedback Question) */
-.feedback-question {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-subtle);
-    font-weight: 700;
-    color: var(--primary-indigo);
-    font-size: 14px;
-}
-
-/* تنسيق الشرح (LaTeX & Text) */
+/* د. تنسيق الشرح والنص */
 .explanation-section {
     font-size: 15px; line-height: 1.7;
+    white-space: pre-wrap; /* للحفاظ على الأسطر */
 }
-/* تحسين شكل الكود والمعادلات داخل الشرح */
+.explanation-section strong {
+    color: var(--primary-indigo);
+    font-weight: 800;
+}
 .explanation-section code {
     background: rgba(255, 255, 255, 0.1);
-    padding: 2px 5px; border-radius: 4px;
+    padding: 2px 6px; border-radius: 4px;
     font-family: monospace; font-size: 0.9em;
+    color: var(--accent-amber);
 }
 
 /* 5. النوتيفيكاسيون (Gamification Badge Toast) 🏆 */
 .badge-toast {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
     background: var(--bg-surface-2);
     border: 1px solid var(--accent-amber);
     color: var(--text-bright);
     padding: 12px 24px; border-radius: 30px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5), var(--glow-amber);
     z-index: 9999;
-    animation: slideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: popDown 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex; align-items: center; gap: 10px;
 }
-@keyframes slideDown {
+@keyframes popDown {
     from { top: -60px; opacity: 0; }
-    to { top: 20px; opacity: 1; }
+    to { top: 80px; opacity: 1; }
 }
 
-/* 6. نماذج الإدخال (Auth & Inputs - Preserved) */
+/* 6. نماذج الإدخال (Auth & Inputs) */
 .auth-container { width: 100%; max-width: 420px; margin: auto; padding: 30px; }
 .auth-header h2 { font-size: 26px; color: var(--text-bright); margin-bottom: 10px; }
 .auth-header p { color: var(--text-muted); margin-bottom: 35px; }
@@ -179,7 +201,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 }
 .btn-main:active { transform: scale(0.98); }
 
-/* 7. لوحة التحكم (Dashboard - Preserved) */
+/* 7. لوحة التحكم (Dashboard) */
 .app-top-bar {
     height: 70px; padding: 0 20px; background: var(--bg-surface-1);
     border-bottom: 1px solid var(--border-subtle);
@@ -209,7 +231,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 .c-blue { background: rgba(99, 102, 241, 0.1); color: var(--primary-indigo); }
 .c-gold { background: rgba(245, 158, 11, 0.1); color: var(--accent-amber); }
 
-/* 8. واجهة الشات (Chat Interface - Preserved) */
+/* 8. واجهة الشات (Chat Interface) */
 .sticky-view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .status-dot { font-size: 12px; color: var(--success-teal); }
 .status-dot::before { content: '●'; margin-left: 5px; }
@@ -237,7 +259,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     box-shadow: var(--glow-indigo);
 }
 
-/* 9. القائمة الجانبية (Sidebar Drawer - Preserved) */
+/* 9. القائمة الجانبية (Sidebar Drawer) */
 .drawer-overlay {
     position: fixed; inset: 0; background: rgba(11, 17, 33, 0.7); backdrop-filter: blur(3px);
     z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
