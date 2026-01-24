@@ -1,13 +1,14 @@
 /* =========================================
-   IKED CSS ENGINE v13.0 (Streaming & Visuals Final) 🎨
+   IKED CSS ENGINE vFINAL (Refined UI/UX) 💎
    Architect: The World's Best Programmer
+   Fixes: Profile Image, Navigation Buttons, MathJax Layout
    ========================================= */
 
 /* 1. المتغيرات الهندسية (Base Variables) */
 :root {
     --bg-core: #0b1121;       /* Deepest Slate */
     --bg-surface-1: #161f32;  /* Cards */
-    --bg-surface-2: #1e293b;  /* Inputs/Hover */
+    --bg-surface-2: #1e293b;  /* Inputs/Hover/Buttons */
     
     --primary-indigo: #6366f1; /* Intelligence */
     --accent-amber: #f59e0b;   /* Warmth */
@@ -20,8 +21,7 @@
     --glow-indigo: 0 0 20px rgba(99, 102, 241, 0.25);
     --glow-amber: 0 0 20px rgba(245, 158, 11, 0.25);
     
-    /* متغيرات جديدة للرسوميات */
-    --code-bg: #111827;        /* خلفية الكود */
+    /* متغيرات الرسوميات */
     --visual-bg: #0f172a;      /* خلفية الرسم */
 }
 
@@ -39,11 +39,11 @@ body {
         radial-gradient(circle at 85% 30%, rgba(245, 158, 11, 0.05) 0%, transparent 25%);
     color: var(--text-bright);
     font-family: 'Tajawal', sans-serif;
-    height: 100vh; overflow: hidden;
+    height: 100vh; overflow: hidden; /* لمنع السكرول المزدوج */
     line-height: 1.6;
 }
 
-/* 3. اللوغو والشاشات */
+/* 3. اللوغو والشاشات (Screens) */
 .center-content {
     flex: 1; display: flex; flex-direction: column;
     justify-content: center; align-items: center; text-align: center;
@@ -59,7 +59,7 @@ body {
 }
 .logo-pulse i {
     transform: rotate(-45deg); font-size: 48px; color: var(--accent-amber);
-    filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.4)); z-index: 2;
+    z-index: 2;
 }
 .brand-name {
     font-size: 32px; font-weight: 900; letter-spacing: 1px;
@@ -75,102 +75,59 @@ body {
 }
 .hidden { display: none !important; opacity: 0; pointer-events: none; }
 
-/* =========================================
-   4. مكونات البطاقات والستريمينغ (New Engine UI) 🆕 🔥
-   ========================================= */
+/* 4. مكونات البطاقات والرسوميات (Visuals & Cards) */
+.iked-card { display: flex; flex-direction: column; gap: 12px; }
 
-.iked-card {
-    display: flex; flex-direction: column; gap: 12px;
-}
-
-/* أ. مؤشر الكتابة المباشرة (Cursor Effect) - هام جداً ⚡ */
-.streaming-active .content-area::after {
-    content: '';
-    display: inline-block;
-    width: 8px;
-    height: 18px;
-    background-color: var(--accent-amber); /* لون الكورصور */
-    margin-right: 4px;
-    vertical-align: sub;
-    animation: blink-cursor 0.8s infinite;
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
-}
-
-@keyframes blink-cursor {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-}
-
-/* ب. صندوق الرسم البياني (SVG) */
 .visual-container {
     background: var(--visual-bg);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
-    padding: 20px;
+    padding: 15px;
     text-align: center;
     margin-bottom: 10px;
     position: relative;
     overflow: hidden;
-    animation: fadeIn 0.5s ease-out;
 }
 .visual-container svg {
     max-width: 100%; height: auto;
-    max-height: 250px; /* لضمان عدم تكبير الرسم كثيراً */
     filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.2));
 }
 .visual-caption {
-    font-size: 12px; color: var(--text-muted); margin-top: 12px;
+    font-size: 12px; color: var(--text-muted); margin-top: 8px;
     border-top: 1px dashed var(--border-subtle); padding-top: 8px;
-    font-weight: 600; letter-spacing: 0.5px;
 }
 
-/* ج. صندوق التشبيه (Analogy) */
 .analogy-box {
     background: rgba(245, 158, 11, 0.08);
     border-left: 3px solid var(--accent-amber);
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-radius: 8px;
     font-size: 14px;
     color: #fbbf24;
     margin-top: 8px;
-    animation: slideInRight 0.4s ease-out;
-}
-@keyframes slideInRight { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
-
-/* د. تنسيق الشرح والنص */
-.explanation-section {
-    font-size: 15px; line-height: 1.7;
-    white-space: pre-wrap; /* للحفاظ على الأسطر */
-}
-.explanation-section strong {
-    color: var(--primary-indigo);
-    font-weight: 800;
-}
-.explanation-section code {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 2px 6px; border-radius: 4px;
-    font-family: monospace; font-size: 0.9em;
-    color: var(--accent-amber);
 }
 
-/* 5. النوتيفيكاسيون (Gamification Badge Toast) 🏆 */
+/* تنسيق الشرح (LaTeX & Text) */
+.explanation-section { font-size: 15px; line-height: 1.7; }
+.explanation-section h3, .explanation-section h4 { margin-top: 10px; color: var(--primary-indigo); }
+.explanation-section ul { margin-right: 20px; margin-bottom: 10px; }
+.explanation-section p { margin-bottom: 8px; }
+
+/* 5. النوتيفيكاسيون (Toast) */
 .badge-toast {
-    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
     background: var(--bg-surface-2);
     border: 1px solid var(--accent-amber);
     color: var(--text-bright);
     padding: 12px 24px; border-radius: 30px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5), var(--glow-amber);
     z-index: 9999;
-    animation: popDown 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: slideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex; align-items: center; gap: 10px;
 }
-@keyframes popDown {
-    from { top: -60px; opacity: 0; }
-    to { top: 80px; opacity: 1; }
-}
+@keyframes slideDown { from { top: -60px; opacity: 0; } to { top: 20px; opacity: 1; } }
 
-/* 6. نماذج الإدخال (Auth & Inputs) */
+/* 6. نماذج الإدخال (Auth) */
 .auth-container { width: 100%; max-width: 420px; margin: auto; padding: 30px; }
 .auth-header h2 { font-size: 26px; color: var(--text-bright); margin-bottom: 10px; }
 .auth-header p { color: var(--text-muted); margin-bottom: 35px; }
@@ -180,7 +137,7 @@ input[type="text"] {
     width: 100%; padding: 16px; background: var(--bg-surface-1);
     border: 2px solid transparent; border-radius: 14px;
     color: var(--text-bright); font-size: 16px; outline: none;
-    transition: 0.3s all; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    transition: 0.3s all;
 }
 input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--primary-indigo); box-shadow: var(--glow-indigo); }
 
@@ -188,7 +145,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 .stream-option {
     background: var(--bg-surface-1); border: 2px solid var(--border-subtle);
     border-radius: 12px; padding: 18px 10px; text-align: center; cursor: pointer;
-    transition: 0.3s all; position: relative; overflow: hidden;
+    transition: 0.3s all;
 }
 .stream-option.selected { background: rgba(99, 102, 241, 0.15); border-color: var(--primary-indigo); }
 
@@ -207,11 +164,20 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     border-bottom: 1px solid var(--border-subtle);
     display: flex; justify-content: space-between; align-items: center;
 }
+/* 🔥 تصحيح البروفيل: الصورة واضحة الآن */
 .avatar-circle {
-    width: 42px; height: 42px; background: linear-gradient(135deg, var(--accent-amber), #d97706);
-    border-radius: 50%; display: flex; justify-content: center; align-items: center;
-    font-weight: 800; font-size: 18px; color: var(--bg-core); box-shadow: var(--glow-amber);
+    width: 42px; height: 42px; 
+    background: linear-gradient(135deg, var(--accent-amber), #d97706);
+    border-radius: 50%; 
+    display: flex; justify-content: center; align-items: center;
+    font-weight: 800; font-size: 18px; color: var(--bg-core); 
+    box-shadow: var(--glow-amber);
+    background-size: cover;      /* يغطي الدائرة كاملة */
+    background-position: center; /* يوسط الصورة */
+    background-repeat: no-repeat;
+    border: 2px solid var(--bg-surface-2); /* إطار خفيف */
 }
+
 .rb-widget {
     background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4);
     padding: 8px 16px; border-radius: 30px; display: flex; align-items: center; gap: 8px;
@@ -224,32 +190,71 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 .dash-card {
     background: var(--bg-surface-1); border: 1px solid var(--border-subtle);
     border-radius: 18px; padding: 22px; transition: 0.3s all border-color;
+    cursor: pointer;
 }
 .dash-card:hover { border-color: rgba(99, 102, 241, 0.5); }
 .ai-card { grid-column: span 2; background: linear-gradient(160deg, rgba(99, 102, 241, 0.1) 0%, var(--bg-surface-1) 60%); }
-.icon-circle { width: 48px; height: 48px; border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 22px; }
+.icon-circle { width: 48px; height: 48px; border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 22px; margin-bottom: 10px; }
 .c-blue { background: rgba(99, 102, 241, 0.1); color: var(--primary-indigo); }
 .c-gold { background: rgba(245, 158, 11, 0.1); color: var(--accent-amber); }
+.dash-card h3 { font-size: 18px; margin-bottom: 5px; color: var(--text-bright); }
+.dash-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+.dash-card h4 { font-size: 16px; color: var(--text-bright); }
+.action-link { font-size: 12px; color: var(--primary-indigo); font-weight: 700; }
 
 /* 8. واجهة الشات (Chat Interface) */
-.sticky-view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.status-dot { font-size: 12px; color: var(--success-teal); }
-.status-dot::before { content: '●'; margin-left: 5px; }
+.sticky-view-header { 
+    display: flex; justify-content: space-between; align-items: center; 
+    margin-bottom: 20px; position: sticky; top: 0; z-index: 5;
+    /* خلفية شفافة للحفاظ على القراءة */
+    /* background: var(--bg-core); padding: 10px 0; */
+}
+.header-title h4 { font-size: 16px; color: var(--text-bright); }
+
+/* 🔥 تصحيح أزرار التنقل (الرجوع والقائمة) */
+.btn-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-bright);
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: 0.2s all;
+}
+.btn-icon:active { transform: scale(0.95); background: var(--bg-surface-1); }
+.btn-icon i { pointer-events: none; }
 
 .input-dock-wrapper {
     position: fixed; bottom: 0; left: 0; width: 100%;
     padding: 15px; background: var(--bg-core); border-top: 1px solid var(--border-subtle);
+    z-index: 50;
 }
 .input-dock { display: flex; gap: 10px; align-items: center; }
 .dock-input {
     flex: 1; background: var(--bg-surface-1); border: 1px solid var(--border-subtle);
     color: var(--text-bright); padding: 12px 16px; font-size: 15px; border-radius: 12px;
+    outline: none;
 }
-.dock-action-btn { width: 48px; height: 48px; border-radius: 12px; background: var(--bg-surface-1); border: 1px solid var(--border-subtle); color: var(--text-muted); }
-.dock-send-btn { width: 48px; height: 48px; border-radius: 12px; background: var(--primary-indigo); color: white; border: none; box-shadow: var(--glow-indigo); }
+.dock-input:focus { border-color: var(--primary-indigo); }
 
-/* تحسين شكل الرسائل */
-.message { max-width: 88%; padding: 16px; border-radius: 18px; margin-bottom: 18px; line-height: 1.7; font-size: 15px; }
+.dock-action-btn { 
+    width: 48px; height: 48px; border-radius: 12px; 
+    background: var(--bg-surface-1); border: 1px solid var(--border-subtle); 
+    color: var(--text-muted); cursor: pointer; display: flex; justify-content: center; align-items: center;
+    font-size: 18px; transition: 0.2s;
+}
+.dock-action-btn:active { transform: scale(0.95); }
+.dock-send-btn { 
+    width: 48px; height: 48px; border-radius: 12px; 
+    background: var(--primary-indigo); color: white; border: none; 
+    box-shadow: var(--glow-indigo); cursor: pointer; display: flex; justify-content: center; align-items: center;
+}
+.dock-send-btn:active { transform: scale(0.95); }
+
+/* رسائل الشات */
+.message { max-width: 88%; padding: 16px; border-radius: 18px; margin-bottom: 18px; font-size: 15px; overflow-wrap: break-word; }
 .bot-message {
     background: var(--bg-surface-1); border: 1px solid var(--border-subtle);
     border-right: 3px solid var(--accent-amber); color: var(--text-bright);
@@ -258,6 +263,7 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
     background: var(--primary-indigo); color: white; align-self: flex-end; margin-left: auto;
     box-shadow: var(--glow-indigo);
 }
+.chat-container { display: flex; flex-direction: column; }
 
 /* 9. القائمة الجانبية (Sidebar Drawer) */
 .drawer-overlay {
@@ -276,20 +282,26 @@ input[type="text"]:focus { background: var(--bg-surface-2); border-color: var(--
 .chat-drawer.open { transform: translateX(0); }
 
 .drawer-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); }
+.btn-icon-small { 
+    background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; 
+}
 .btn-new-chat {
     margin: 15px; padding: 12px; background: var(--primary-indigo); color: white;
     border: none; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px;
     cursor: pointer; box-shadow: var(--glow-indigo); transition: 0.2s;
 }
+.btn-new-chat:active { transform: scale(0.98); }
+
 .history-list { flex: 1; overflow-y: auto; padding: 10px 0; }
 .history-item {
     padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.03);
-    cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 5px;
+    cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center;
 }
 .history-item:hover { background: var(--bg-surface-2); }
 .history-item.active { background: rgba(99, 102, 241, 0.1); border-right: 3px solid var(--accent-amber); }
+.h-content { flex: 1; }
 .h-title { font-size: 14px; font-weight: 600; color: var(--text-bright); }
 .h-date { font-size: 11px; color: var(--text-muted); }
-.h-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; }
-.edit-icon { font-size: 12px; color: var(--text-muted); opacity: 0.7; transition: 0.2s; padding: 5px; }
-.edit-icon:hover { opacity: 1; color: var(--text-bright); transform: scale(1.1); }
+.h-actions { margin-right: 10px; }
+.edit-icon { font-size: 14px; color: var(--text-muted); opacity: 0.7; transition: 0.2s; padding: 5px; }
+.edit-icon:hover { opacity: 1; color: #ef4444; transform: scale(1.1); }
