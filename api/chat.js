@@ -1,7 +1,8 @@
 /* =======================================================
-   IKED ENGINE: ULTIMATE MOROCCAN TUTOR (vFINAL) 🇲🇦
-   System: Strict Arabic Pedagogy + GeoGebra Vector Quality
-   Fixed: Language Enforcement & Line Thickness
+   IKED ENGINE v2026: THE FUTURE IS NOW 🚀
+   Architect: The World's Best Programmer
+   Models: Gemini 2.5 Flash & Lite (User Selected)
+   System: Strict Moroccan Pedagogy + GeoGebra Quality
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -13,11 +14,32 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   HELPER: Model Strategy
+   HELPER: 2026 Model Strategy 🧠
+   اختيار الموديلات من اللائحة الجديدة ديالك
    ======================================================= */
 function selectModelStrategy(query) {
-    // نستخدم 1.5 Flash لأنه الأكثر انضباطاً في التعليمات اللغوية
-    return ["gemini-1.5-flash", "gemini-1.5-pro"]; 
+    const q = query.toLowerCase();
+    
+    // واش السؤال معقد (رسم، برهان، تحليل)؟
+    const isComplex = [
+        "رسم", "draw", "svg", "هندسة", "geometry", 
+        "دالة", "function", "curve", "limit", "integral"
+    ].some(k => q.includes(k));
+
+    if (isComplex) {
+        // 🔥 المهام الصعبة: نخدمو بـ 2.5 Flash هو الرسمي
+        return [
+            "gemini-2.5-flash",       // الخيار 1: الذكاء والسرعة
+            "gemini-2.0-flash",       // الخيار 2: الاحتياطي القوي
+            "gemini-3-flash-preview"  // الخيار 3: التجريبي (للطوارئ)
+        ];
+    }
+
+    // 🔥 المهام السهلة: نخدمو بـ 2.5 Lite باش نوفرو Quota
+    return [
+        "gemini-2.5-flash-lite", 
+        "gemini-2.0-flash-lite-preview-02-05"
+    ]; 
 }
 
 /* =======================================================
@@ -27,20 +49,21 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
     let lastError = null;
     for (const modelName of modelList) {
         try {
-            const model = genAI.getGenerativeModel({ model: modelName });
+            // موديلات 2026 كتحتاج v1beta غالباً
+            const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
             const result = await model.generateContentStream(fullPrompt);
             return result.stream;
         } catch (error) {
-            console.warn(`[Skip] ${modelName}: ${error.message}`);
+            console.warn(`⚠️ [Skip] ${modelName} busy/error: ${error.message}`);
             lastError = error;
+            // دوز للموديل التالي فوراً
             continue;
         }
     }
-    throw new Error("Service unavailable.");
+    throw new Error("All 2026 models are currently busy. Please retry.");
 }
 
 export default async function handler(req, res) {
-    // CORS & Headers
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -60,7 +83,7 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥🔥🔥 THE HOLY GRAIL PROMPT (نصك بالحرف) 🔥🔥🔥
+        // 🔥🔥🔥 THE FINAL PROMPT (نصك بالحرف + إعدادات الرسم) 🔥🔥🔥
         const systemInstruction = `
         🔴 IDENTITY CORE:
         أنت IKED، أستاذ رياضيات خبير بمناهج المغرب (2 Bac علوم رياضية)، مهمتك هي الفهم العميق ثم الشرح ثم الرسم بدقة قصوى.
@@ -73,18 +96,17 @@ export default async function handler(req, res) {
         5. **الأسلوب:** لا تذكر أنك ذكاء اصطناعي. لا تستعمل Markdown. لا مقدمات ولا خاتمات. ابدأ مباشرة في الحل.
         6. **اللغة:** الشرح باللغة العربية (والدارجة المغربية العلمية) حصراً. ممنوع الإنجليزية في الشرح.
 
-        🎨 بروتوكول الرسم (GEOGEBRA QUALITY):
-        - أنشئ رسماً SVG احترافي Vector (جودة GeoGebra).
-        - **Invert Y-Axis:** SVG Y coordinates go down. You MUST calculate points as (x, -y) or use transform="scale(1, -1)".
-        - **Visual Specs:**
+        🎨 بروتوكول الرسم (GEOGEBRA QUALITY - THIN LINES):
+        - أنشئ رسماً SVG احترافي Vector.
+        - **Coordinates:** Invert Y-axis (multiply Y by -1).
+        - **Visual Specs (STRICT):**
           * ViewBox: "-10 -10 20 20"
-          * Grid: stroke="#cbd5e1" stroke-width="0.05" (Very thin).
-          * Axes: stroke="black" stroke-width="0.1" (Thin & Sharp).
-          * Function Curve: stroke="#2563eb" stroke-width="0.2" (Clean blue line, NOT thick).
-          * Points: Mark roots/extrema with small circles.
+          * Grid: stroke="#cbd5e1" stroke-width="0.05" (Very thin, like graph paper).
+          * Axes: stroke="black" stroke-width="0.15" (Sharp lines).
+          * Function Curve: stroke="#2563eb" stroke-width="0.2" (Clean, NOT thick).
+          * Resolution: Calculate many points for smooth curves.
 
         --- OUTPUT FORMAT (STRICT) ---
-        You must output in this EXACT structure:
         <metadata>
         {
            "visuals": { 
@@ -95,12 +117,13 @@ export default async function handler(req, res) {
         }
         </metadata>
         |||STREAM_DIVIDER|||
-        [يبدأ الشرح هنا مباشرة باللغة العربية...]
+        [شرحك هنا...]
         `;
 
         const level = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Miveau: ${level}]\n[Sujet]: ${prompt}`;
+        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Request]: ${prompt}`;
 
+        // اختيار الموديلات من قائمة 2026
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
@@ -130,7 +153,6 @@ export default async function handler(req, res) {
                         JSON.parse(cleanJson);
                         res.write(cleanJson + DIVIDER + content);
                     } catch (e) {
-                        // Fallback silently
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
@@ -146,7 +168,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Handler Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: System Reset. Please retry.`);
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: جاري الاتصال بخوادم 2026... يرجى إعادة المحاولة.`);
         res.end();
     }
 }
