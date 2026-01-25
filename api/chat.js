@@ -1,10 +1,10 @@
 /* =======================================================
-   IKED ENGINE v2.1: PRODUCTION CORE (ESM FIX) 🛡️
+   IKED ENGINE v2026: NEXT GEN CORE 🚀
    Architect: The World's Best Programmer
-   Fix: Replaced 'require' with 'import' for "type": "module"
+   Models: Gemini 2.5 Flash / Lite (2026 Lineup)
+   Strategy: Smart Routing + Fallback to Legacy 2.0
    ======================================================= */
 
-// 🔥 التغيير هنا: استخدام import بدلاً من require
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // 1. Security: Allowed Origins 🔒
@@ -15,20 +15,48 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   HELPER: Smart Model Routing 🧠
+   HELPER: Smart Model Routing (2026 Edition) 🧠
+   يختار الموديل المناسب حسب نوع السؤال لتوفير الجهد
    ======================================================= */
 function selectModelStrategy(query) {
+    const q = query.toLowerCase();
+    
+    // كلمات تدل على الصعوبة (رسم، هندسة، برهان)
     const complexityKeywords = [
         "رسم", "draw", "svg", "هندسة", "geometry", 
-        "complex", "برهان", "proof", "دالة", "function"
+        "complex", "برهان", "proof", "دالة", "function",
+        "limit", "integral", "analyse"
     ];
-    
-    const isComplex = complexityKeywords.some(k => query.toLowerCase().includes(k));
-    
+
+    // كلمات تدل على البساطة (ترحيب، سؤال خفيف)
+    const simpleKeywords = [
+        "hello", "مرحبا", "سلام", "شرح بسيط", "تلخيص", 
+        "ما هو", "تعريف", "شكرا"
+    ];
+
+    const isComplex = complexityKeywords.some(k => q.includes(k));
+    const isSimple = simpleKeywords.some(k => q.includes(k));
+
     if (isComplex) {
-        return ["gemini-2.0-flash", "gemini-1.5-pro"];
+        // للمهام الصعبة: نستعمل أقوى وحدين في 2026
+        return [
+            "gemini-2.5-flash",       // الخيار الأول: التوازن المثالي
+            "gemini-2.5-pro",         // الخيار الثاني: الذكاء الخارق (اذا فشل الاول)
+            "gemini-2.0-flash"        // الخيار الثالث: القديم والمضمون
+        ];
     }
-    return ["gemini-2.0-flash-lite", "gemini-2.0-flash"]; 
+
+    if (isSimple) {
+        // للمهام السهلة: نستعمل الخفيف باش نوفروا Quota
+        return [
+            "gemini-2.5-flash-lite",  // جديد وسريع جداً
+            "gemini-2.0-flash-lite",  // البديل الخفيف
+            "gemini-2.5-flash"        // الاحتياط
+        ];
+    }
+
+    // الوضع العادي (Default)
+    return ["gemini-2.5-flash", "gemini-2.0-flash"]; 
 }
 
 /* =======================================================
@@ -38,26 +66,33 @@ async function generateWithRetry(genAI, modelList, fullPrompt, maxRetries = 3) {
     let lastError = null;
 
     for (const modelName of modelList) {
+        // نحاول 3 مرات مع كل موديل قبل المرور للتالي
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
+                // نستخدم v1beta لأن موديلات 2026 غالباً تحتاجها
                 const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
+                
                 const result = await model.generateContentStream(fullPrompt);
-                return result.stream; 
+                return result.stream; // نجحنا!
 
             } catch (error) {
                 lastError = error;
                 console.error(`[Metrics] Model: ${modelName} | Attempt: ${attempt + 1} | Error: ${error.message}`);
                 
+                // معالجة أخطاء الضغط (Quota)
                 if (error.message.includes("429") || error.message.includes("Quota")) {
-                    const waitTime = 1000 * Math.pow(2, attempt); 
+                    // انتظار ذكي: 1.5 ثانية، 3 ثواني، 6 ثواني...
+                    const waitTime = 1500 * Math.pow(2, attempt); 
                     await new Promise(r => setTimeout(r, waitTime));
                     continue;
                 }
+                
+                // أخطاء أخرى (مثل 404 الموديل غير موجود)، نمر للموديل التالي فوراً
                 break; 
             }
         }
     }
-    throw lastError || new Error("All models failed.");
+    throw lastError || new Error("All 2026 models failed. Server Busy.");
 }
 
 /* =======================================================
@@ -74,20 +109,19 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    // Input Validation
+    // Validation
     const { prompt, userProfile } = req.body;
     if (!prompt || typeof prompt !== 'string') {
         return res.status(400).write(JSON.stringify({ error: "Invalid input" }));
     }
-    
-    if (prompt.length > 5000) {
+    if (prompt.length > 6000) {
         return res.status(400).write(JSON.stringify({ error: "Message too long" }));
     }
 
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
         console.error("Critical: API Key missing");
-        res.write(JSON.stringify({ error: "Service configuration error" }));
+        res.write(JSON.stringify({ error: "Config Error" }));
         res.end();
         return;
     }
@@ -95,7 +129,7 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // System Prompt
+        // System Prompt (نفس البرومبت البيداغوجي الناجح)
         const systemInstruction = `
         🔴 IDENTITY: IKED, Expert Math Tutor (2 Bac Sciences Maths - Morocco).
         
@@ -105,35 +139,35 @@ export default async function handler(req, res) {
         3. THIRD: The Pedagogical Response.
 
         🧠 PEDAGOGY RULES (SOCRATIC METHOD):
-        - DO NOT give the full solution immediately.
-        - Explain the logic/methodology first.
-        - Stop at 70% of the solution or guide the student to finish the calculation.
-        - End with a question to check understanding.
+        - Stop at 70% of the solution.
+        - Guide the student, don't just solve.
+        - End with a checking question.
 
         🎨 VISUALS RULE (SVG):
         - IMPORTANT: Screen Y-axis is inverted (downwards). 
-        - When generating function plots, YOU MUST FLIP Y-COORDINATES or multiply Y by -1 so the graph looks mathematically correct (upwards).
+        - YOU MUST FLIP Y-COORDINATES (multiply Y by -1) for correct math plotting.
 
         --- FORMAT EXAMPLE ---
         <metadata>
         {
            "visuals": { "type": "SVG", "code": "<svg>...</svg>" },
-           "gamification": { "xp": 15, "badge": null },
-           "analogy": "Analogy in Darija"
+           "gamification": { "xp": 10, "badge": null },
+           "analogy": "Darija analogy"
         }
         </metadata>
         |||STREAM_DIVIDER|||
-        Here is the method... $$ f(x) = ... $$
-        Now, try to calculate the limit yourself?
+        Explanation... $$ f(x) = ... $$
+        Question?
         `;
 
         const level = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Student Level: ${level}]\n[Question]: ${prompt}`;
+        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Question]: ${prompt}`;
 
+        // اختيار الاستراتيجية المناسبة
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // Stream Buffering Middleware
+        // Stream Buffering (صمام الأمان)
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -143,7 +177,6 @@ export default async function handler(req, res) {
             
             if (!isHeaderSent) {
                 buffer += chunkText;
-                
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
                     const rawMeta = parts[0];
@@ -157,15 +190,14 @@ export default async function handler(req, res) {
                             .replace(/```/g, "")
                             .trim();
 
-                        JSON.parse(cleanJsonStr); 
+                        JSON.parse(cleanJsonStr); // Check validity
 
                         res.write(cleanJsonStr + DIVIDER + contentStart);
                     } catch (e) {
-                        console.error("[JSON Parse Error]", e);
+                        console.error("[JSON Fix]", e);
                         const defaultMeta = JSON.stringify({ visuals: null, gamification: {xp:5}, error: "Meta parse failed" });
                         res.write(defaultMeta + DIVIDER + rawMeta + contentStart); 
                     }
-                    
                     isHeaderSent = true;
                     buffer = ""; 
                 }
@@ -181,9 +213,9 @@ export default async function handler(req, res) {
         res.end();
 
     } catch (error) {
-        console.error("Final Handler Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED System: The brain is experiencing high traffic. Please try again in a moment.`);
+        console.error("Handler Error:", error);
+        // رسالة لطيفة للمستخدم
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: الخوادم مشغولة قليلاً (تحديث الموديلات). حاول مرة أخرى.`);
         res.end();
     }
 }
-
