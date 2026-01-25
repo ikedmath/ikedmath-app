@@ -1,18 +1,13 @@
 /* =======================================================
-   IKED ENGINE v2.0: PRODUCTION CORE 🛡️
+   IKED ENGINE v2.1: PRODUCTION CORE (ESM FIX) 🛡️
    Architect: The World's Best Programmer
-   Features: 
-    - Smart Routing (Lite vs Flash)
-    - Stream Buffering (No broken JSON)
-    - Socratic Pedagogy (Doesn't give full answers)
-    - SVG Y-Axis Fix
-    - Exponential Backoff
+   Fix: Replaced 'require' with 'import' for "type": "module"
    ======================================================= */
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+// 🔥 التغيير هنا: استخدام import بدلاً من require
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // 1. Security: Allowed Origins 🔒
-// قم بتحديث هذا الرابط برابط موقعك الحقيقي عند الانتهاء
 const ALLOWED_ORIGINS = [
     "https://h-app.vercel.app", 
     "http://localhost:3000", 
@@ -21,7 +16,6 @@ const ALLOWED_ORIGINS = [
 
 /* =======================================================
    HELPER: Smart Model Routing 🧠
-   يختار الموديل حسب صعوبة السؤال لتوفير Quota
    ======================================================= */
 function selectModelStrategy(query) {
     const complexityKeywords = [
@@ -29,20 +23,16 @@ function selectModelStrategy(query) {
         "complex", "برهان", "proof", "دالة", "function"
     ];
     
-    // هل السؤال يحتاج قدرات بصرية أو هندسية عالية؟
     const isComplex = complexityKeywords.some(k => query.toLowerCase().includes(k));
     
     if (isComplex) {
-        // للمهام الصعبة: نبدأ بالموديل القوي
         return ["gemini-2.0-flash", "gemini-1.5-pro"];
     }
-    // للمهام العادية: نبدأ بالموديل الخفيف والسريع
     return ["gemini-2.0-flash-lite", "gemini-2.0-flash"]; 
 }
 
 /* =======================================================
    HELPER: Retry Logic with Exponential Backoff 🔄
-   يعيد المحاولة بذكاء إذا كان السيرفر مشغولاً
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt, maxRetries = 3) {
     let lastError = null;
@@ -50,24 +40,19 @@ async function generateWithRetry(genAI, modelList, fullPrompt, maxRetries = 3) {
     for (const modelName of modelList) {
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
-                // استخدام v1beta للوصول لأحدث الموديلات
                 const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
-                
                 const result = await model.generateContentStream(fullPrompt);
-                return result.stream; // نجاح! نرجع الستريم
+                return result.stream; 
 
             } catch (error) {
                 lastError = error;
                 console.error(`[Metrics] Model: ${modelName} | Attempt: ${attempt + 1} | Error: ${error.message}`);
                 
-                // إذا كان الخطأ 429 (Too Many Requests)، ننتظر وقتاً أطول في كل مرة
                 if (error.message.includes("429") || error.message.includes("Quota")) {
-                    const waitTime = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s...
+                    const waitTime = 1000 * Math.pow(2, attempt); 
                     await new Promise(r => setTimeout(r, waitTime));
                     continue;
                 }
-                
-                // إذا كان الخطأ تقنياً (غير موجود)، نمر للموديل التالي فوراً
                 break; 
             }
         }
@@ -79,7 +64,6 @@ async function generateWithRetry(genAI, modelList, fullPrompt, maxRetries = 3) {
    MAIN HANDLER
    ======================================================= */
 export default async function handler(req, res) {
-    // CORS Setup
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -90,13 +74,12 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    // 2. Input Validation ✅
+    // Input Validation
     const { prompt, userProfile } = req.body;
     if (!prompt || typeof prompt !== 'string') {
         return res.status(400).write(JSON.stringify({ error: "Invalid input" }));
     }
     
-    // Rate Limiting (Basic Check) - حماية الطول
     if (prompt.length > 5000) {
         return res.status(400).write(JSON.stringify({ error: "Message too long" }));
     }
@@ -112,7 +95,7 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 3. The Pedagogical System Prompt (Socratic & Strict) 📐
+        // System Prompt
         const systemInstruction = `
         🔴 IDENTITY: IKED, Expert Math Tutor (2 Bac Sciences Maths - Morocco).
         
@@ -147,14 +130,10 @@ export default async function handler(req, res) {
         const level = userProfile?.stream || "SM";
         const fullPrompt = `${systemInstruction}\n\n[Student Level: ${level}]\n[Question]: ${prompt}`;
 
-        // Select models & Start Stream
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        /* =======================================================
-           4. STREAM BUFFERING MIDDLEWARE 🛡️
-           نخزن النص حتى نتأكد من صحة الـ JSON قبل إرساله للمستخدم
-           ======================================================= */
+        // Stream Buffering Middleware
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -165,15 +144,12 @@ export default async function handler(req, res) {
             if (!isHeaderSent) {
                 buffer += chunkText;
                 
-                // هل وصلنا للفاصل؟
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
                     const rawMeta = parts[0];
-                    const contentStart = parts.slice(1).join(DIVIDER); // الباقي هو الشرح
+                    const contentStart = parts.slice(1).join(DIVIDER); 
 
-                    // محاولة استخراج وتنظيف الـ JSON
                     try {
-                        // تنظيف العلامات <metadata> وأي markdown
                         let cleanJsonStr = rawMeta
                             .replace(/<metadata>/g, "")
                             .replace(/<\/metadata>/g, "")
@@ -181,28 +157,23 @@ export default async function handler(req, res) {
                             .replace(/```/g, "")
                             .trim();
 
-                        // التحقق من صحة JSON (Validation)
                         JSON.parse(cleanJsonStr); 
 
-                        // إذا نجحنا، نرسل الجزء الأول النظيف
                         res.write(cleanJsonStr + DIVIDER + contentStart);
                     } catch (e) {
-                        // Fallback: إذا فشل الـ JSON، نرسل ديفولت ونكمل الشرح
                         console.error("[JSON Parse Error]", e);
                         const defaultMeta = JSON.stringify({ visuals: null, gamification: {xp:5}, error: "Meta parse failed" });
                         res.write(defaultMeta + DIVIDER + rawMeta + contentStart); 
                     }
                     
                     isHeaderSent = true;
-                    buffer = ""; // تفريغ المخزن
+                    buffer = ""; 
                 }
             } else {
-                // إذا تجاوزنا الهيدر، نرسل الشرح مباشرة (Direct Streaming)
                 res.write(chunkText);
             }
         }
 
-        // إذا انتهى الستريم ولم نجد الفاصل (حالة نادرة)، نرسل ما تبقى
         if (!isHeaderSent && buffer.length > 0) {
             res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
         }
@@ -211,8 +182,8 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Final Handler Error:", error);
-        // 5. Error Masking: رسالة عامة للمستخدم، واللوغ الحقيقي فالسيرفر
         res.write(`|||STREAM_DIVIDER|||⚠️ IKED System: The brain is experiencing high traffic. Please try again in a moment.`);
         res.end();
     }
 }
+
