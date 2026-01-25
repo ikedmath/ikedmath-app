@@ -1,56 +1,52 @@
 /* =======================================================
-   IKED ENGINE v2026: STRICT LIST EDITION 🔒
+   IKED ENGINE v2026: PURE JSON EDITION 💎
    Architect: The World's Best Programmer
-   Models: STRICTLY FROM YOUR PROVIDED LIST (No 1.5)
-   Fixes: 404 Errors, Quota Management, Infinite Loops
+   Models: STRICTLY FROM YOUR LIST
+   Features: No XML Tags, Pure JSON Header, Robust Parsing
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const ALLOWED_ORIGINS = [
-    "https://h-app.vercel.app", 
+    "[https://h-app.vercel.app](https://h-app.vercel.app)", 
     "http://localhost:3000", 
-    "http://127.0.0.1:5500"
+    "[http://127.0.0.1:5500](http://127.0.0.1:5500)"
 ];
 
 /* =======================================================
-   1. STRATEGY: STRICT 2026 LIST 🧠
+   1. STRATEGY: STRICT 2026 LIST (UNCHANGED) 🧠
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function"].some(k => q.includes(k));
+    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function", "curve", "plot"].some(k => q.includes(k));
 
     if (isComplex) {
-        // 🔥 القوة الضاربة (من لائحتك فقط)
         return [
-            "gemini-2.5-flash",       // (001) - الخيار الأول: الأذكى
-            "gemini-2.0-flash",       // (2.0) - الخيار الثاني: المشهور
-            "gemini-flash-latest"     // (Latest) - الخيار الثالث: "الروكور" المنقذ
+            "gemini-2.5-flash",       // الخيار الأول
+            "gemini-2.0-flash",       // الخيار الثاني
+            "gemini-flash-latest"     // الخيار الثالث
         ];
     }
 
-    // 🔥 السرعة القصوى (من لائحتك فقط)
     return [
-        "gemini-2.5-flash-lite",              // (001) - الجديد
-        "gemini-2.0-flash-lite-preview-02-05", // (Preview) - غالباً الكوظا ديالو خاوية
-        "gemini-flash-lite-latest"            // (Latest) - الاحتياطي
+        "gemini-2.5-flash-lite",              
+        "gemini-2.0-flash-lite-preview-02-05", 
+        "gemini-flash-lite-latest"            
     ]; 
 }
 
 /* =======================================================
-   2. RETRY LOGIC WITH BRAKES & v1beta 🛑
+   2. RETRY LOGIC (BALANCED) ⚖️
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
     for (const modelName of modelList) {
         try {
-            // ⚠️ هام: جميع موديلات 2026 تتطلب v1beta
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
-                // 🛑 الفرامل: لمنع التكرار اللانهائي والهذيان
                 generationConfig: {
-                    temperature: 0.4,       // رزين ودقيق
-                    maxOutputTokens: 2000,  // حد أقصى للكلام
-                    topP: 0.8,
+                    temperature: 0.5,       // متوازن: ذكي في الشرح ودقيق في الرسم
+                    maxOutputTokens: 2500,  // مساحة كافية للرسم والشرح
+                    topP: 0.9,
                 }
             }, { apiVersion: 'v1beta' });
 
@@ -58,17 +54,14 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             return result.stream;
 
         } catch (error) {
-            // تسجيل الخطأ والمرور للموديل التالي فوراً
             console.warn(`⚠️ [Skip] ${modelName}: ${error.message}`);
-            
-            // إذا كان الخطأ ضغطاً (429)، ننتظر ثانية ونمر للتالي
             if (error.message.includes("429") || error.message.includes("Quota")) {
                 await new Promise(r => setTimeout(r, 1500)); 
             }
             continue; 
         }
     }
-    throw new Error("IKED System Busy (All 2026 models overloaded).");
+    throw new Error("IKED System Busy (All models overloaded).");
 }
 
 export default async function handler(req, res) {
@@ -91,35 +84,33 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: MOROCCAN TUTOR + VECTOR GRAPHICS 🔥
+        // 🔥 SYSTEM PROMPT: PURE JSON PROTOCOL (NO XML) 🔥
         const systemInstruction = `
-        🔴 IDENTITY: IKED, Prof de Maths (2 Bac SM Maroc). Strict & Concise.
+        🔴 IDENTITY: IKED, Prof de Maths (2 Bac SM Maroc). Professional, Warm, & Precise.
 
-        ⚡ OUTPUT RULES:
-        1. **Language:** Arabic (contextual Darija allowed).
-        2. **Math:** LaTeX ($$).
-        3. **Visuals:** Generate SVG ONLY inside JSON.
+        ⚡ PROTOCOL (STRICT ORDER):
+        1. **HEADER:** Output a valid JSON object strictly containing the visuals.
+        2. **SEPARATOR:** Output exactly "|||STREAM_DIVIDER|||".
+        3. **BODY:** Output the explanation text in Arabic/Darija.
 
-        🎨 SVG RULES (GeoGebra Style):
-        - **Y-Axis:** Multiply Y by -1 (Invert).
-        - **ViewBox:** "-10 -10 20 20".
-        - **Precision:** Step 0.1 for curves.
-        - **Style:** * Grid: stroke-width="0.05"
-          * Axes: stroke-width="0.15"
-          * Curve: stroke-width="0.2" (Blue #2563eb)
+        🎨 GRAPHING ENGINE (GeoGebra Style):
+        - If NO graph is needed, output: {"visuals": null}
+        - If graph IS needed:
+          * **Y-Axis:** Invert Y (multiply by -1).
+          * **ViewBox:** "-10 -10 20 20".
+          * **Styling:** Grid stroke="0.05", Curve stroke="0.2" (Blue).
+          * **Format:** Pure SVG code inside the JSON.
 
-        --- STRICT RESPONSE FORMAT ---
-        <metadata>
+        --- OUTPUT TEMPLATE (DO NOT ADD MARKDOWN OR XML) ---
         {
            "visuals": { 
                "type": "SVG", 
-               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'><defs><pattern id='g' width='1' height='1' patternUnits='userSpaceOnUse'><path d='M1 0V1M0 1H1' fill='none' stroke='#e2e8f0' stroke-width='0.05'/></pattern></defs><rect width='100%' height='100%' fill='url(#g)' x='-10' y='-10'/><line x1='-10' y1='0' x2='10' y2='0' stroke='black' stroke-width='0.15'/><line x1='0' y1='-10' x2='0' y2='10' stroke='black' stroke-width='0.15'/><path d='...' fill='none' stroke='#2563eb' stroke-width='0.2'/></svg>"
+               "code": "<svg viewBox='-10 -10 20 20' xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)'>...</svg>"
            }, 
-           "gamification": {"xp": 10, "badge": null}
+           "gamification": {"xp": 10}
         }
-        </metadata>
         |||STREAM_DIVIDER|||
-        [Explanation...]
+        [Start your explanation here...]
         `;
 
         const level = userProfile?.stream || "SM";
@@ -128,7 +119,7 @@ export default async function handler(req, res) {
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // Stream Buffering
+        // 🔥 ROBUST BUFFERING & PARSING 🔥
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -138,38 +129,51 @@ export default async function handler(req, res) {
             
             if (!isHeaderSent) {
                 buffer += chunkText;
+                
+                // البحث عن الفاصل
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
-                    const rawMeta = parts[0];
-                    const content = parts.slice(1).join(DIVIDER);
+                    const rawJson = parts[0]; // الجزء الأول هو الـ JSON
+                    const content = parts.slice(1).join(DIVIDER); // الباقي هو الشرح
 
                     try {
-                        let cleanJson = rawMeta
-                            .replace(/<metadata>/g, "")
+                        // 🧹 تنظيف عميق جداً لإزالة أي شوائب
+                        let cleanJson = rawJson
+                            .replace(/```json/g, "")  // إزالة كود ماركداون
+                            .replace(/```/g, "")      // إزالة الإغلاق
+                            .replace(/<metadata>/g, "") // احتياطاً
                             .replace(/<\/metadata>/g, "")
-                            .replace(/```json/g, "")
-                            .replace(/```/g, "")
                             .trim();
 
+                        // التحقق من صحة الـ JSON قبل الإرسال
                         JSON.parse(cleanJson);
+                        
+                        // إرسال الهيدر النظيف
                         res.write(cleanJson + DIVIDER + content);
                     } catch (e) {
+                        console.error("JSON Parse Error:", e);
+                        // خطة الطوارئ: إذا فشل الـ JSON، أرسل null وأكمل الشرح
+                        // هذا يمنع ظهور الكود للمستخدم
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
                     buffer = "";
                 }
             } else {
+                // إرسال الشرح مباشرة بعد تجاوز الهيدر
                 res.write(chunkText);
             }
         }
         
-        if (!isHeaderSent && buffer) res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
+        // إذا انتهى الرد ولم يتم العثور على الفاصل (حالة نادرة)، نرسل النص فقط
+        if (!isHeaderSent && buffer) {
+            res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
+        }
         res.end();
 
     } catch (error) {
-        console.error("Final Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: Server overloaded. Please wait 10s and retry.`);
+        console.error("Handler Error:", error);
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: Server is busy, retrying...`);
         res.end();
     }
 }
