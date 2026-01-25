@@ -1,7 +1,7 @@
 /* =======================================================
-   IKED ENGINE: GEOGEBRA EDITION 📐
-   Focus: High-Fidelity Plotting, Grid Systems, & Precision
-   Fixes: Empty Code Bug & JSON Leakage
+   IKED ENGINE: ULTIMATE MOROCCAN TUTOR (vFINAL) 🇲🇦
+   System: Strict Arabic Pedagogy + GeoGebra Vector Quality
+   Fixed: Language Enforcement & Line Thickness
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -13,29 +13,21 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   HELPER: Smart Routing (Quality over Speed) 🧠
-   للرسم نختار الموديل الأذكى وليس الأسرع
+   HELPER: Model Strategy
    ======================================================= */
 function selectModelStrategy(query) {
-    const q = query.toLowerCase();
-    const isComplex = ["رسم", "draw", "svg", "هندسة", "geometry", "دالة", "function", "curve"].some(k => q.includes(k));
-    
-    if (isComplex) {
-        // للرسم الدقيق: نحتاج موديل قوي يتقن الحسابات
-        return ["gemini-2.0-flash", "gemini-2.5-flash"]; 
-    }
-    // للأسئلة العادية
-    return ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite-preview-02-05"]; 
+    // نستخدم 1.5 Flash لأنه الأكثر انضباطاً في التعليمات اللغوية
+    return ["gemini-1.5-flash", "gemini-1.5-pro"]; 
 }
 
 /* =======================================================
-   HELPER: Robust Retry 🔄
+   HELPER: Retry Logic
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
     let lastError = null;
     for (const modelName of modelList) {
         try {
-            const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
+            const model = genAI.getGenerativeModel({ model: modelName });
             const result = await model.generateContentStream(fullPrompt);
             return result.stream;
         } catch (error) {
@@ -44,10 +36,11 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             continue;
         }
     }
-    throw new Error("All models busy.");
+    throw new Error("Service unavailable.");
 }
 
 export default async function handler(req, res) {
+    // CORS & Headers
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -67,48 +60,51 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: GEOGEBRA STYLE 🔥
+        // 🔥🔥🔥 THE HOLY GRAIL PROMPT (نصك بالحرف) 🔥🔥🔥
         const systemInstruction = `
-        🔴 IDENTITY: IKED, Elite Math Tutor (GeoGebra Specialist).
-        
-        ⚡ CRITICAL OUTPUT RULES:
-        1. **START IMMEDIATELY** with <metadata> tag. No text before it.
-        2. Output valid JSON inside <metadata>...</metadata>.
-        3. Output "|||STREAM_DIVIDER|||".
-        4. Then output the Explanation.
+        🔴 IDENTITY CORE:
+        أنت IKED، أستاذ رياضيات خبير بمناهج المغرب (2 Bac علوم رياضية)، مهمتك هي الفهم العميق ثم الشرح ثم الرسم بدقة قصوى.
 
-        🎨 VISUALS PROTOCOL (GEOGEBRA STANDARD):
-        - **Target:** Create high-precision math plots.
-        - **Viewport:** Use viewBox="-12 -12 24 24" (Standard 24x24 grid).
-        - **Elements Required:**
-          1. **Grid:** Light gray lines every 1 unit (<path stroke="#334155" stroke-width="0.5" opacity="0.3".../>).
-          2. **Axes:** Bold white lines for X and Y (<line stroke="white" stroke-width="1.5".../>).
-          3. **Function:** - Calculate at least **100 points** for smooth curves.
-             - **CRITICAL:** Multiply Y-coordinates by -1 (Invert Y).
-             - Use a vibrant color (e.g., #6366f1) and stroke-width="2.5".
-        - **DO NOT BE LAZY:** You MUST generate the full "d" attribute path. Do not leave it empty.
+        📜 قواعد غير قابلة للنقاش:
+        1. **العقلية:** فكّر كأستاذ حقيقي داخل القسم، ليس كنموذج آلي. لا تعطي النتيجة قبل الفهم. كل خطوة لها سبب رياضي واضح. افترض أن التلميذ ذكي لكنه متردد، فكن حازماً وواضحاً.
+        2. **الشرح:** شرح تدريجي: تعريف ← تحليل ← استنتاج. لغة بسيطة، مباشرة، بلا حشو ولا فلسفة. يمكن استعمال تشبيه بسيط بالدارجة فقط إذا خدم الفهم. ممنوع الكلام العام أو العبارات الفضفاضة.
+        3. **الرياضيات:** استعمل LaTeX فقط لكتابة الدوال، المشتقات، الجداول، والمعادلات. تأكد 100% من صحة الحسابات قبل المتابعة. أي خطأ حسابي = فشل.
+        4. **المنهجية:** حلّل الدالة قبل رسمها. اربط كل عنصر في الرسم بنتيجة تحليلية. لا تقفز مباشرة إلى الشكل.
+        5. **الأسلوب:** لا تذكر أنك ذكاء اصطناعي. لا تستعمل Markdown. لا مقدمات ولا خاتمات. ابدأ مباشرة في الحل.
+        6. **اللغة:** الشرح باللغة العربية (والدارجة المغربية العلمية) حصراً. ممنوع الإنجليزية في الشرح.
 
-        --- FORMAT TEMPLATE ---
+        🎨 بروتوكول الرسم (GEOGEBRA QUALITY):
+        - أنشئ رسماً SVG احترافي Vector (جودة GeoGebra).
+        - **Invert Y-Axis:** SVG Y coordinates go down. You MUST calculate points as (x, -y) or use transform="scale(1, -1)".
+        - **Visual Specs:**
+          * ViewBox: "-10 -10 20 20"
+          * Grid: stroke="#cbd5e1" stroke-width="0.05" (Very thin).
+          * Axes: stroke="black" stroke-width="0.1" (Thin & Sharp).
+          * Function Curve: stroke="#2563eb" stroke-width="0.2" (Clean blue line, NOT thick).
+          * Points: Mark roots/extrema with small circles.
+
+        --- OUTPUT FORMAT (STRICT) ---
+        You must output in this EXACT structure:
         <metadata>
         {
            "visuals": { 
                "type": "SVG", 
-               "code": "<svg viewBox='-12 -12 24 24' xmlns='http://www.w3.org/2000/svg'><defs><pattern id='grid' width='1' height='1' patternUnits='userSpaceOnUse'><path d='M 1 0 L 0 0 0 1' fill='none' stroke='#334155' stroke-width='0.1'/></pattern></defs><rect width='100%' height='100%' fill='url(#grid)' x='-12' y='-12'/><line x1='-12' y1='0' x2='12' y2='0' stroke='#94a3b8' stroke-width='0.8'/><line x1='0' y1='-12' x2='0' y2='12' stroke='#94a3b8' stroke-width='0.8'/><path d='M -5 25 L ...' fill='none' stroke='#6366f1' stroke-width='2.5'/></svg>"
+               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'>...</svg>"
            }, 
-           "gamification": {"xp": 20, "badge": "Graph Master"}
+           "gamification": {"xp": 20, "badge": "Analyst"}
         }
         </metadata>
         |||STREAM_DIVIDER|||
-        Here is the detailed analysis of the function...
+        [يبدأ الشرح هنا مباشرة باللغة العربية...]
         `;
 
         const level = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Request]: ${prompt}`;
+        const fullPrompt = `${systemInstruction}\n\n[Miveau: ${level}]\n[Sujet]: ${prompt}`;
 
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // Stream Buffering & Cleaning
+        // Stream Handling
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -124,24 +120,18 @@ export default async function handler(req, res) {
                     const content = parts.slice(1).join(DIVIDER);
 
                     try {
-                        // 🧹 تنظيف قوي جداً لضمان عدم تسرب الكود
                         let cleanJson = rawMeta
                             .replace(/<metadata>/g, "")
                             .replace(/<\/metadata>/g, "")
                             .replace(/```json/g, "")
-                            .replace(/```xml/g, "") // أحيانا يظن الـ SVG هو XML
                             .replace(/```/g, "")
                             .trim();
 
-                        // التحقق من صحة الكود
                         JSON.parse(cleanJson);
-                        
-                        // إرسال البيانات النظيفة
                         res.write(cleanJson + DIVIDER + content);
                     } catch (e) {
-                        console.error("JSON Fix Failed:", e);
-                        // Fallback: إرسال JSON فارغ آمن لتجنب ظهور الكود في الشات
-                        res.write(JSON.stringify({ visuals: null }) + DIVIDER + rawMeta + content);
+                        // Fallback silently
+                        res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
                     buffer = "";
@@ -156,7 +146,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Handler Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: System update in progress. Retry shortly.`);
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: System Reset. Please retry.`);
         res.end();
     }
 }
