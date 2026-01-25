@@ -1,8 +1,7 @@
 /* =======================================================
-   IKED ENGINE v2026: MASTERPIECE EDITION 🏆
-   Architect: The World's Best Programmer
-   Models: STRICTLY FROM YOUR 2026 LIST
-   Logic: High IQ Persona + Precision Engineering
+   IKED ENGINE v2026: THE NUCLEAR FIX ☢️
+   Focus: Aggressive JSON Extraction & Token Boosting
+   Logic: "Find the braces, ignore the rest"
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -11,35 +10,32 @@ const ALLOWED_ORIGINS = [
     "https://h-app.vercel.app", 
     "http://localhost:3000", 
     "http://127.0.0.1:5500",
-    "https://ikedmath-app.vercel.app" // أضفت هذا احتياطاً
+    "https://ikedmath-app.vercel.app"
 ];
 
 /* =======================================================
-   1. STRATEGY: THE 2026 ELITE SQUAD 🧠
+   1. STRATEGY: STRICT 2026 LIST
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function", "curve", "plot", "lim", "integral"].some(k => q.includes(k));
+    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function"].some(k => q.includes(k));
 
     if (isComplex) {
-        // 🔥 القوة الضاربة (للرسم والتحليل المعقد)
         return [
-            "gemini-2.5-flash",       // (001) الأذكى والأسرع
+            "gemini-2.5-flash",       // (001) الذكي
             "gemini-2.0-flash",       // (2.0) المستقر
-            "gemini-flash-latest"     // (Latest) المنقذ
+            "gemini-flash-latest"     // المنقذ
         ];
     }
-
-    // 🔥 السرعة القصوى (للأسئلة العادية)
     return [
-        "gemini-2.5-flash-lite",              // (001) الصاروخ
-        "gemini-2.0-flash-lite-preview-02-05", // (Preview) المجاني
-        "gemini-flash-lite-latest"            // (Latest)
+        "gemini-2.5-flash-lite",              
+        "gemini-2.0-flash-lite-preview-02-05", 
+        "gemini-flash-lite-latest"            
     ]; 
 }
 
 /* =======================================================
-   2. GENERATION LOGIC WITH SMART RETRY ⚙️
+   2. GENERATION LOGIC (MAX TOKENS)
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
     for (const modelName of modelList) {
@@ -47,8 +43,8 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
                 generationConfig: {
-                    temperature: 0.7,       // استعادة "ذكاء" الأستاذ (Creativity)
-                    maxOutputTokens: 3000,  // مساحة كافية للشرح والرسم
+                    temperature: 0.6,
+                    maxOutputTokens: 8192, // ⚠️ رفعنا الحد للأقصى باش الرسم مايتقطعش
                     topP: 0.9,
                 }
             }, { apiVersion: 'v1beta' });
@@ -58,18 +54,16 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
 
         } catch (error) {
             console.warn(`⚠️ [Skip] ${modelName}: ${error.message}`);
-            // انتظار ذكي عند الضغط (Exponential Backoff Lite)
             if (error.message.includes("429") || error.message.includes("Quota")) {
-                await new Promise(r => setTimeout(r, 1500)); 
+                await new Promise(r => setTimeout(r, 2000)); 
             }
             continue; 
         }
     }
-    throw new Error("IKED System Busy (High Traffic). Please retry.");
+    throw new Error("System Overload.");
 }
 
 export default async function handler(req, res) {
-    // CORS & Headers
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -89,47 +83,35 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: THE PERFECT BALANCE 🔥
+        // 🔥 SYSTEM PROMPT: FORCE RAW FORMAT 🔥
         const systemInstruction = `
-        🔴 IDENTITY: You are **IKED**, an engaging Moroccan Math Tutor (2 Bac SM).
-        - **Tone:** Professional yet warm. Use "Darija" for emphasis.
-        - **Method:** 1. Analyze 2. Visualize 3. Explain.
+        You are IKED, a Moroccan Math Tutor.
+        
+        🚨 **CRITICAL OUTPUT RULES**: 
+        1. FIRST output the Visuals JSON. 
+        2. THEN output "|||STREAM_DIVIDER|||".
+        3. THEN output the Explanation.
 
-        ⚡ OUTPUT PROTOCOL (STRICT):
-        1. **Start IMMEDIATELY** with a JSON object for the visuals.
-        2. Follow with the separator: "|||STREAM_DIVIDER|||".
-        3. Then write the explanation text.
+        ⚠️ **DO NOT USE MARKDOWN.** Do NOT write \`\`\`json. Just write the raw JSON.
 
-        🎨 VISUALS ENGINE (GeoGebra Standard):
-        - **Format:** SVG inside JSON.
-        - **Coordinate System:**
-          * **Invert Y:** SVG Y is down. You MUST calculate: y_svg = -1 * y_math.
-          * **ViewBox:** "-10 -10 20 20".
-        - **Styling:**
-          * **Grid:** stroke="#e2e8f0" stroke-width="0.05" (Paper thin).
-          * **Axes:** stroke="#0f172a" stroke-width="0.15" (Sharp).
-          * **Curve:** stroke="#2563eb" stroke-width="0.2" (Professional Blue).
-        - **No Graph Needed?** Output: {"visuals": null}
+        🎨 **SVG RULES (GeoGebra Style):**
+        - **Invert Y:** y_svg = -1 * y_math.
+        - **ViewBox:** "-10 -10 20 20".
+        - **Elements:** Simple <path> and <line> tags. No complex definitions.
 
-        --- TEMPLATE (DO NOT DEVIATE) ---
-        {
-           "visuals": { 
-               "type": "SVG", 
-               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'>...</svg>"
-           }, 
-           "gamification": {"xp": 15}
-        }
+        --- TEMPLATE ---
+        { "visuals": { "type": "SVG", "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'>...</svg>" }, "gamification": {"xp": 10} }
         |||STREAM_DIVIDER|||
-        [Explanation starts here...]
+        [Explanation...]
         `;
 
         const level = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Question]: ${prompt}`;
+        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[User]: ${prompt}`;
 
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // 🔥 CLEANING PIPELINE (The "Filter") 🔥
+        // 🔥 LOGIC: SURGICAL JSON EXTRACTION 🔥
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -143,51 +125,49 @@ export default async function handler(req, res) {
                 // ننتظر الفاصل
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
-                    const rawJson = parts[0]; 
+                    const rawBuffer = parts[0]; 
                     const content = parts.slice(1).join(DIVIDER);
 
                     try {
-                        // 🧹 التنظيف الجراحي: إزالة أي ماركداون أو شوائب
-                        let cleanJson = rawJson.trim();
-                        // إزالة ```json أو ``` في البداية والنهاية
-                        cleanJson = cleanJson.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
-                        
-                        // محاولة استخراج JSON إذا كان وسط نص
-                        const firstBrace = cleanJson.indexOf('{');
-                        const lastBrace = cleanJson.lastIndexOf('}');
-                        if (firstBrace !== -1 && lastBrace !== -1) {
-                            cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
-                        }
+                        // 🛠️ عملية الجراحة: البحث عن أول { وآخر }
+                        // هذا يتجاهل تماماً أي نص أو ماركداون قبل أو بعد الـ JSON
+                        const firstBrace = rawBuffer.indexOf('{');
+                        const lastBrace = rawBuffer.lastIndexOf('}');
 
-                        // التحقق النهائي
-                        JSON.parse(cleanJson);
-                        
-                        // إرسال الهيدر النظيف + الفاصل + المحتوى
-                        res.write(cleanJson + DIVIDER + content);
+                        if (firstBrace !== -1 && lastBrace !== -1) {
+                            let cleanJson = rawBuffer.substring(firstBrace, lastBrace + 1);
+                            
+                            // التحقق من الصحة
+                            JSON.parse(cleanJson);
+                            
+                            // إرسال الـ JSON النظيف فقط
+                            res.write(cleanJson + DIVIDER + content);
+                        } else {
+                            throw new Error("No JSON found");
+                        }
                     } catch (e) {
-                        console.error("JSON Clean Error:", e);
-                        // خطة الطوارئ: إرسال null لإخفاء الكود الفاشل
+                        console.error("JSON Extraction Failed:", e);
+                        // 🛑 Fail-Safe: إذا فشل الاستخراج، نرسل null لنخفي الكود ونظهر الشرح فقط
+                        // لن يظهر للمستخدم أي كود مخربق بعد الآن
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
                     buffer = "";
                 }
             } else {
-                // البث المباشر لما بعد الفاصل
                 res.write(chunkText);
             }
         }
         
         // إغلاق آمن
         if (!isHeaderSent && buffer) {
-            // إذا لم نجد الفاصل، نرسل النص فقط ونخفي أي محاولة رسم فاشلة
-            res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
+             res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
         }
         res.end();
 
     } catch (error) {
         console.error("Handler Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: System update. Please retry.`);
+        res.write(`{"visuals":null}|||STREAM_DIVIDER|||⚠️ IKED: Please retry.`);
         res.end();
     }
 }
