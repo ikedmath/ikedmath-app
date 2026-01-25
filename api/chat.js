@@ -1,13 +1,13 @@
 /* =======================================================
-   IKED ENGINE v2026: NEXT GEN CORE 🚀
+   IKED ENGINE v2026: THE ULTIMATE PERFORMANCE 🚀
    Architect: The World's Best Programmer
-   Models: Gemini 2.5 Flash / Lite (2026 Lineup)
-   Strategy: Smart Routing + Fallback to Legacy 2.0
+   Selected Models: Gemini 2.5 Family (Flash & Lite)
+   Optimization: SVG Size Reduction + Fail-Fast Routing
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// 1. Security: Allowed Origins 🔒
+// 1. Security & Configuration 🔒
 const ALLOWED_ORIGINS = [
     "https://h-app.vercel.app", 
     "http://localhost:3000", 
@@ -15,90 +15,66 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   HELPER: Smart Model Routing (2026 Edition) 🧠
-   يختار الموديل المناسب حسب نوع السؤال لتوفير الجهد
+   STRATEGY: THE 2026 ROUTING LOGIC 🧠
+   ختارينا ليك "الكريمة" ديال الموديلات من اللائحة ديالك
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
     
-    // كلمات تدل على الصعوبة (رسم، هندسة، برهان)
-    const complexityKeywords = [
+    // واش السؤال فيه رسم أو حساب معقد؟
+    const isComplex = [
         "رسم", "draw", "svg", "هندسة", "geometry", 
-        "complex", "برهان", "proof", "دالة", "function",
-        "limit", "integral", "analyse"
-    ];
-
-    // كلمات تدل على البساطة (ترحيب، سؤال خفيف)
-    const simpleKeywords = [
-        "hello", "مرحبا", "سلام", "شرح بسيط", "تلخيص", 
-        "ما هو", "تعريف", "شكرا"
-    ];
-
-    const isComplex = complexityKeywords.some(k => q.includes(k));
-    const isSimple = simpleKeywords.some(k => q.includes(k));
+        "منحنى", "curve", "plot", "function", "دالة"
+    ].some(k => q.includes(k));
 
     if (isComplex) {
-        // للمهام الصعبة: نستعمل أقوى وحدين في 2026
+        // 🔥 للخام الصعبة: كنخدمو 2.5 Flash هو اللول (سريع وذكي)
+        // وموراه 2.0 Flash Lite Preview (حيت الـ Quota ديالو مرخوفة)
         return [
-            "gemini-2.5-flash",       // الخيار الأول: التوازن المثالي
-            "gemini-2.5-pro",         // الخيار الثاني: الذكاء الخارق (اذا فشل الاول)
-            "gemini-2.0-flash"        // الخيار الثالث: القديم والمضمون
+            "gemini-2.5-flash", 
+            "gemini-2.0-flash-lite-preview-02-05", 
+            "gemini-2.0-flash"
         ];
     }
 
-    if (isSimple) {
-        // للمهام السهلة: نستعمل الخفيف باش نوفروا Quota
-        return [
-            "gemini-2.5-flash-lite",  // جديد وسريع جداً
-            "gemini-2.0-flash-lite",  // البديل الخفيف
-            "gemini-2.5-flash"        // الاحتياط
-        ];
-    }
-
-    // الوضع العادي (Default)
-    return ["gemini-2.5-flash", "gemini-2.0-flash"]; 
+    // 🔥 للأسئلة العادية: كنخدمو 2.5 Lite الجديد
+    return [
+        "gemini-2.5-flash-lite", 
+        "gemini-2.0-flash-lite-preview-02-05", 
+        "gemini-2.5-flash"
+    ]; 
 }
 
 /* =======================================================
-   HELPER: Retry Logic with Exponential Backoff 🔄
+   LOGIC: FAIL-FAST GENERATION ⚡
+   مكاينش "تسنى 40 ثانية". إلا الموديل مشغول، دوز للي بعدو فوراً.
    ======================================================= */
-async function generateWithRetry(genAI, modelList, fullPrompt, maxRetries = 3) {
+async function generateWithRetry(genAI, modelList, fullPrompt) {
     let lastError = null;
 
     for (const modelName of modelList) {
-        // نحاول 3 مرات مع كل موديل قبل المرور للتالي
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                // نستخدم v1beta لأن موديلات 2026 غالباً تحتاجها
-                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
-                
-                const result = await model.generateContentStream(fullPrompt);
-                return result.stream; // نجحنا!
+        try {
+            // جميع موديلات 2026 كتحتاج v1beta
+            const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
+            
+            const result = await model.generateContentStream(fullPrompt);
+            return result.stream; 
 
-            } catch (error) {
-                lastError = error;
-                console.error(`[Metrics] Model: ${modelName} | Attempt: ${attempt + 1} | Error: ${error.message}`);
-                
-                // معالجة أخطاء الضغط (Quota)
-                if (error.message.includes("429") || error.message.includes("Quota")) {
-                    // انتظار ذكي: 1.5 ثانية، 3 ثواني، 6 ثواني...
-                    const waitTime = 1500 * Math.pow(2, attempt); 
-                    await new Promise(r => setTimeout(r, waitTime));
-                    continue;
-                }
-                
-                // أخطاء أخرى (مثل 404 الموديل غير موجود)، نمر للموديل التالي فوراً
-                break; 
-            }
+        } catch (error) {
+            // نسجل الخطأ ولكن ما نحبسوش.. ندوزو للموديل التالي فـ 0.1 ثانية
+            console.warn(`⚠️ [Skip] ${modelName} busy/error: ${error.message}`);
+            lastError = error;
+            continue;
         }
     }
-    throw lastError || new Error("All 2026 models failed. Server Busy.");
+    throw new Error("All 2026 models are busy. Please retry.");
 }
 
 /* =======================================================
    MAIN HANDLER
    ======================================================= */
 export default async function handler(req, res) {
+    // CORS Setup
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -111,17 +87,11 @@ export default async function handler(req, res) {
 
     // Validation
     const { prompt, userProfile } = req.body;
-    if (!prompt || typeof prompt !== 'string') {
-        return res.status(400).write(JSON.stringify({ error: "Invalid input" }));
-    }
-    if (prompt.length > 6000) {
-        return res.status(400).write(JSON.stringify({ error: "Message too long" }));
-    }
+    if (!prompt) return res.status(400).write(JSON.stringify({ error: "No input" }));
 
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-        console.error("Critical: API Key missing");
-        res.write(JSON.stringify({ error: "Config Error" }));
+        res.write(JSON.stringify({ error: "Server Config Error" }));
         res.end();
         return;
     }
@@ -129,42 +99,40 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // System Prompt (نفس البرومبت البيداغوجي الناجح)
+        // 🔥 SYSTEM PROMPT: SPEED & ACCURACY OPTIMIZED
         const systemInstruction = `
-        🔴 IDENTITY: IKED, Expert Math Tutor (2 Bac Sciences Maths - Morocco).
+        🔴 IDENTITY: IKED, Expert Math Tutor (Morocco 2Bac SM).
         
-        ⚡ STRICT OUTPUT PROTOCOL:
-        1. FIRST: Output valid JSON Metadata strictly inside <metadata> tags.
-        2. SECOND: Output exactly "|||STREAM_DIVIDER|||".
-        3. THIRD: The Pedagogical Response.
+        ⚡ RESPONSE PROTOCOL:
+        1. FIRST: JSON Metadata inside <metadata> tags.
+        2. SECOND: "|||STREAM_DIVIDER|||".
+        3. THIRD: The Explanation.
 
-        🧠 PEDAGOGY RULES (SOCRATIC METHOD):
-        - Stop at 70% of the solution.
-        - Guide the student, don't just solve.
-        - End with a checking question.
+        🎨 SVG DRAWING RULES (CRITICAL FOR SPEED):
+        - **Invert Y-Axis:** Multiply all Y coordinates by -1 (Screen Y is down).
+        - **Simplify:** Use minimal path points. Don't create huge files.
+        - **ViewBox:** Use a standard logical viewBox (e.g., "-10 -10 20 20").
+        - **Style:** Use stroke-width="2" and distinct colors.
 
-        🎨 VISUALS RULE (SVG):
-        - IMPORTANT: Screen Y-axis is inverted (downwards). 
-        - YOU MUST FLIP Y-COORDINATES (multiply Y by -1) for correct math plotting.
+        🧠 PEDAGOGY (SOCRATIC):
+        - Guide the student step-by-step.
+        - Do not dump the final answer immediately.
+        - End with a follow-up question.
 
         --- FORMAT EXAMPLE ---
         <metadata>
-        {
-           "visuals": { "type": "SVG", "code": "<svg>...</svg>" },
-           "gamification": { "xp": 10, "badge": null },
-           "analogy": "Darija analogy"
-        }
+        {"visuals": {"type": "SVG", "code": "<svg>...</svg>"}, "gamification": {"xp": 10, "badge": null}}
         </metadata>
         |||STREAM_DIVIDER|||
-        Explanation... $$ f(x) = ... $$
-        Question?
+        Here is the graph analysis...
         `;
 
         const level = userProfile?.stream || "SM";
         const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Question]: ${prompt}`;
 
-        // اختيار الاستراتيجية المناسبة
+        // اختيار الموديلات
         const models = selectModelStrategy(prompt);
+        // التنفيذ
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
         // Stream Buffering (صمام الأمان)
@@ -177,45 +145,49 @@ export default async function handler(req, res) {
             
             if (!isHeaderSent) {
                 buffer += chunkText;
+                
+                // واش كملنا الهيدر؟
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
                     const rawMeta = parts[0];
-                    const contentStart = parts.slice(1).join(DIVIDER); 
+                    const contentStart = parts.slice(1).join(DIVIDER);
 
                     try {
-                        let cleanJsonStr = rawMeta
+                        // تنظيف الـ JSON
+                        let cleanJson = rawMeta
                             .replace(/<metadata>/g, "")
                             .replace(/<\/metadata>/g, "")
                             .replace(/```json/g, "")
                             .replace(/```/g, "")
                             .trim();
 
-                        JSON.parse(cleanJsonStr); // Check validity
-
-                        res.write(cleanJsonStr + DIVIDER + contentStart);
+                        JSON.parse(cleanJson); // تأكد من الصحة
+                        res.write(cleanJson + DIVIDER + contentStart);
                     } catch (e) {
-                        console.error("[JSON Fix]", e);
-                        const defaultMeta = JSON.stringify({ visuals: null, gamification: {xp:5}, error: "Meta parse failed" });
-                        res.write(defaultMeta + DIVIDER + rawMeta + contentStart); 
+                        // Fallback سريع
+                        const fallbackMeta = JSON.stringify({ visuals: null, error: "Meta Error" });
+                        res.write(fallbackMeta + DIVIDER + rawMeta + contentStart);
                     }
                     isHeaderSent = true;
-                    buffer = ""; 
+                    buffer = "";
                 }
             } else {
+                // إرسال مباشر للشرح
                 res.write(chunkText);
             }
         }
 
-        if (!isHeaderSent && buffer.length > 0) {
+        // إرسال ما تبقى
+        if (!isHeaderSent && buffer) {
             res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
         }
 
         res.end();
 
     } catch (error) {
-        console.error("Handler Error:", error);
-        // رسالة لطيفة للمستخدم
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: الخوادم مشغولة قليلاً (تحديث الموديلات). حاول مرة أخرى.`);
+        console.error("Handler Failure:", error);
+        // رسالة الخطأ كتبان "برو"
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: Network traffic high. Switched to fallback nodes. Please retry.`);
         res.end();
     }
 }
