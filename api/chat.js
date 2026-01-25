@@ -1,6 +1,8 @@
 /* =======================================================
-   IKED ENGINE v2026: STABLE CONTROL 🛑
-   Fix: Added Token Limits & Temperature Control to prevent hallucinations
+   IKED ENGINE v2026: STRICT LIST EDITION 🔒
+   Architect: The World's Best Programmer
+   Models: STRICTLY FROM YOUR PROVIDED LIST (No 1.5)
+   Fixes: 404 Errors, Quota Management, Infinite Loops
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -12,31 +14,42 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   LOGIC: MODEL SELECTION
+   1. STRATEGY: STRICT 2026 LIST 🧠
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
     const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function"].some(k => q.includes(k));
 
     if (isComplex) {
-        // نستخدم الموديلات المستقرة فقط للرسم لتجنب الجنون
-        return ["gemini-2.0-flash", "gemini-1.5-flash"];
+        // 🔥 القوة الضاربة (من لائحتك فقط)
+        return [
+            "gemini-2.5-flash",       // (001) - الخيار الأول: الأذكى
+            "gemini-2.0-flash",       // (2.0) - الخيار الثاني: المشهور
+            "gemini-flash-latest"     // (Latest) - الخيار الثالث: "الروكور" المنقذ
+        ];
     }
-    return ["gemini-2.5-flash-lite", "gemini-1.5-flash"]; 
+
+    // 🔥 السرعة القصوى (من لائحتك فقط)
+    return [
+        "gemini-2.5-flash-lite",              // (001) - الجديد
+        "gemini-2.0-flash-lite-preview-02-05", // (Preview) - غالباً الكوظا ديالو خاوية
+        "gemini-flash-lite-latest"            // (Latest) - الاحتياطي
+    ]; 
 }
 
 /* =======================================================
-   LOGIC: RETRY WITH BRAKES 🛑
+   2. RETRY LOGIC WITH BRAKES & v1beta 🛑
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
     for (const modelName of modelList) {
         try {
-            // 🔥 ضبط الإعدادات (Generation Config) لضبط الانضباط
+            // ⚠️ هام: جميع موديلات 2026 تتطلب v1beta
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
+                // 🛑 الفرامل: لمنع التكرار اللانهائي والهذيان
                 generationConfig: {
-                    temperature: 0.4,       // تخفيض الإبداع لزيادة الدقة
-                    maxOutputTokens: 2000,  // حد أقصى للكلام لمنع الهذيان الطويل
+                    temperature: 0.4,       // رزين ودقيق
+                    maxOutputTokens: 2000,  // حد أقصى للكلام
                     topP: 0.8,
                 }
             }, { apiVersion: 'v1beta' });
@@ -45,11 +58,17 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             return result.stream;
 
         } catch (error) {
-            console.warn(`[Skip] ${modelName}: ${error.message}`);
+            // تسجيل الخطأ والمرور للموديل التالي فوراً
+            console.warn(`⚠️ [Skip] ${modelName}: ${error.message}`);
+            
+            // إذا كان الخطأ ضغطاً (429)، ننتظر ثانية ونمر للتالي
+            if (error.message.includes("429") || error.message.includes("Quota")) {
+                await new Promise(r => setTimeout(r, 1500)); 
+            }
             continue; 
         }
     }
-    throw new Error("System Busy.");
+    throw new Error("IKED System Busy (All 2026 models overloaded).");
 }
 
 export default async function handler(req, res) {
@@ -72,33 +91,35 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: SIMPLIFIED & DIRECT 🔥
+        // 🔥 SYSTEM PROMPT: MOROCCAN TUTOR + VECTOR GRAPHICS 🔥
         const systemInstruction = `
-        🔴 IDENTITY: IKED, Math Tutor (2 Bac SM). Strict & Precise.
+        🔴 IDENTITY: IKED, Prof de Maths (2 Bac SM Maroc). Strict & Concise.
 
         ⚡ OUTPUT RULES:
-        1. **Explanation Language:** Arabic + Darija Science terms.
-        2. **Math:** Use LaTeX ($$).
-        3. **Visuals:** Generate SVG code ONLY inside the JSON metadata.
+        1. **Language:** Arabic (contextual Darija allowed).
+        2. **Math:** LaTeX ($$).
+        3. **Visuals:** Generate SVG ONLY inside JSON.
 
-        🎨 SVG RULES (Keep it Simple & Correct):
-        - **Y-Axis:** Multiply Y by -1.
+        🎨 SVG RULES (GeoGebra Style):
+        - **Y-Axis:** Multiply Y by -1 (Invert).
         - **ViewBox:** "-10 -10 20 20".
-        - **Style:** Thin lines (stroke-width="0.1").
-        - **IMPORTANT:** Do NOT generate infinite points. Use reasonable step (e.g., 0.2).
+        - **Precision:** Step 0.1 for curves.
+        - **Style:** * Grid: stroke-width="0.05"
+          * Axes: stroke-width="0.15"
+          * Curve: stroke-width="0.2" (Blue #2563eb)
 
         --- STRICT RESPONSE FORMAT ---
         <metadata>
         {
            "visuals": { 
                "type": "SVG", 
-               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' fill='white'/><path d='M-10 0 H10 M0 -10 V10' stroke='black' stroke-width='0.1'/><path d='...' stroke='blue' stroke-width='0.2' fill='none'/></svg>"
+               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'><defs><pattern id='g' width='1' height='1' patternUnits='userSpaceOnUse'><path d='M1 0V1M0 1H1' fill='none' stroke='#e2e8f0' stroke-width='0.05'/></pattern></defs><rect width='100%' height='100%' fill='url(#g)' x='-10' y='-10'/><line x1='-10' y1='0' x2='10' y2='0' stroke='black' stroke-width='0.15'/><line x1='0' y1='-10' x2='0' y2='10' stroke='black' stroke-width='0.15'/><path d='...' fill='none' stroke='#2563eb' stroke-width='0.2'/></svg>"
            }, 
            "gamification": {"xp": 10, "badge": null}
         }
         </metadata>
         |||STREAM_DIVIDER|||
-        [Explanation Starts Here]
+        [Explanation...]
         `;
 
         const level = userProfile?.stream || "SM";
@@ -107,7 +128,7 @@ export default async function handler(req, res) {
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // Stream Handling
+        // Stream Buffering
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -133,7 +154,6 @@ export default async function handler(req, res) {
                         JSON.parse(cleanJson);
                         res.write(cleanJson + DIVIDER + content);
                     } catch (e) {
-                        // Fallback: Empty visual to prevent crash
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
@@ -148,8 +168,8 @@ export default async function handler(req, res) {
         res.end();
 
     } catch (error) {
-        console.error("Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: Please retry.`);
+        console.error("Final Error:", error);
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: Server overloaded. Please wait 10s and retry.`);
         res.end();
     }
 }
