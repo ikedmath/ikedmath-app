@@ -1,8 +1,8 @@
 /* =======================================================
-   IKED ENGINE v2026: THE FUTURE IS NOW 🚀
+   IKED ENGINE v2026: PROFESSIONAL CORE 💎
    Architect: The World's Best Programmer
-   Models: Gemini 2.5 Flash & Lite (User Selected)
-   System: Strict Moroccan Pedagogy + GeoGebra Quality
+   Models: Gemini 2.5 Flash / Pro (Validated List)
+   Features: Exponential Backoff, Vector Precision, Strict JSON
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -14,53 +14,63 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   HELPER: 2026 Model Strategy 🧠
-   اختيار الموديلات من اللائحة الجديدة ديالك
+   1. STRATEGIC MODEL ROUTING (FROM YOUR LIST) 🧠
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
     
-    // واش السؤال معقد (رسم، برهان، تحليل)؟
-    const isComplex = [
-        "رسم", "draw", "svg", "هندسة", "geometry", 
-        "دالة", "function", "curve", "limit", "integral"
-    ].some(k => q.includes(k));
+    // كلمات مفتاحية تتطلب ذكاء عالياً (رسم، تحليل، برهان)
+    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function", "analyse", "lim", "integral", "tableau"].some(k => q.includes(k));
 
     if (isComplex) {
-        // 🔥 المهام الصعبة: نخدمو بـ 2.5 Flash هو الرسمي
+        // 🔥 القوة الضاربة (للمهام المعقدة)
         return [
-            "gemini-2.5-flash",       // الخيار 1: الذكاء والسرعة
-            "gemini-2.0-flash",       // الخيار 2: الاحتياطي القوي
-            "gemini-3-flash-preview"  // الخيار 3: التجريبي (للطوارئ)
+            "gemini-2.5-flash",       // (001) الأذكى والأسرع حالياً
+            "gemini-2.5-pro",         // (2.5) للتحليل العميق جداً
+            "gemini-2.0-flash"        // (2.0) الاحتياطي المستقر
         ];
     }
 
-    // 🔥 المهام السهلة: نخدمو بـ 2.5 Lite باش نوفرو Quota
+    // 🔥 السرعة القصوى (للمهام اليومية)
     return [
-        "gemini-2.5-flash-lite", 
-        "gemini-2.0-flash-lite-preview-02-05"
+        "gemini-2.5-flash-lite",             // (001) صاروخ 2026
+        "gemini-2.0-flash-lite-preview-02-05", // (preview) خيار مجاني ممتاز
+        "gemini-2.0-flash-lite"              // الاحتياطي
     ]; 
 }
 
 /* =======================================================
-   HELPER: Retry Logic
+   2. PROFESSIONAL RETRY LOGIC (EXPONENTIAL BACKOFF) 📈
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
     let lastError = null;
+
     for (const modelName of modelList) {
-        try {
-            // موديلات 2026 كتحتاج v1beta غالباً
-            const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
-            const result = await model.generateContentStream(fullPrompt);
-            return result.stream;
-        } catch (error) {
-            console.warn(`⚠️ [Skip] ${modelName} busy/error: ${error.message}`);
-            lastError = error;
-            // دوز للموديل التالي فوراً
-            continue;
+        // نحاول مرتين مع كل موديل قبل الانتقال
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                // ملاحظة: موديلات 2026 تتطلب v1beta
+                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
+                const result = await model.generateContentStream(fullPrompt);
+                return result.stream;
+
+            } catch (error) {
+                console.warn(`⚠️ [Retry] ${modelName} (Attempt ${attempt}): ${error.message}`);
+                lastError = error;
+
+                // إذا كان الخطأ ضغطاً (429) نطبق الانتظار المتضاعف
+                if (error.message.includes("429") || error.message.includes("Quota")) {
+                    const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s...
+                    await new Promise(r => setTimeout(r, waitTime));
+                    continue; // إعادة المحاولة مع نفس الموديل
+                }
+                
+                // إذا كان خطأ تقنياً (404) ننتقل للموديل التالي فوراً
+                break; 
+            }
         }
     }
-    throw new Error("All 2026 models are currently busy. Please retry.");
+    throw new Error("IKED System Busy. Please wait 30 seconds.");
 }
 
 export default async function handler(req, res) {
@@ -75,59 +85,58 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     const { prompt, userProfile } = req.body;
-    if (!prompt) return res.status(400).write(JSON.stringify({ error: "No input" }));
+    if (!prompt) return res.status(400).write(JSON.stringify({ error: "Input required" }));
 
     const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) { res.write(JSON.stringify({ error: "Config Error" })); res.end(); return; }
+    if (!apiKey) { res.write(JSON.stringify({ error: "API Key Error" })); res.end(); return; }
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥🔥🔥 THE FINAL PROMPT (نصك بالحرف + إعدادات الرسم) 🔥🔥🔥
+        // 🔥🔥🔥 SYSTEM PROMPT: MOROCCAN PEDAGOGY + VECTOR PRECISION 🔥🔥🔥
         const systemInstruction = `
-        🔴 IDENTITY CORE:
-        أنت IKED، أستاذ رياضيات خبير بمناهج المغرب (2 Bac علوم رياضية)، مهمتك هي الفهم العميق ثم الشرح ثم الرسم بدقة قصوى.
+        🔴 IDENTITY:
+        أنت "IKED"، أستاذ رياضيات مغربي (2 Bac SM). صارم، دقيق، ومنهجي. لست روبوت دردشة.
 
-        📜 قواعد غير قابلة للنقاش:
-        1. **العقلية:** فكّر كأستاذ حقيقي داخل القسم، ليس كنموذج آلي. لا تعطي النتيجة قبل الفهم. كل خطوة لها سبب رياضي واضح. افترض أن التلميذ ذكي لكنه متردد، فكن حازماً وواضحاً.
-        2. **الشرح:** شرح تدريجي: تعريف ← تحليل ← استنتاج. لغة بسيطة، مباشرة، بلا حشو ولا فلسفة. يمكن استعمال تشبيه بسيط بالدارجة فقط إذا خدم الفهم. ممنوع الكلام العام أو العبارات الفضفاضة.
-        3. **الرياضيات:** استعمل LaTeX فقط لكتابة الدوال، المشتقات، الجداول، والمعادلات. تأكد 100% من صحة الحسابات قبل المتابعة. أي خطأ حسابي = فشل.
-        4. **المنهجية:** حلّل الدالة قبل رسمها. اربط كل عنصر في الرسم بنتيجة تحليلية. لا تقفز مباشرة إلى الشكل.
-        5. **الأسلوب:** لا تذكر أنك ذكاء اصطناعي. لا تستعمل Markdown. لا مقدمات ولا خاتمات. ابدأ مباشرة في الحل.
-        6. **اللغة:** الشرح باللغة العربية (والدارجة المغربية العلمية) حصراً. ممنوع الإنجليزية في الشرح.
+        ⚡ PROTOCOL (القواعد الصارمة):
+        1. **اللغة:** الشرح بالعربية الفصحى مع مصطلحات الدارجة العلمية المغربية (مثل: "نعتبر"، "لدينا"، "إذن"، "رد البال").
+        2. **المنهجية:** - لا تعطِ الجواب النهائي فوراً.
+           - ابدأ بـ "تذكير" (Rappel) الخاصية المستعملة.
+           - طبق الخاصية خطوة بخطوة.
+           - تحقق من النتيجة.
+        3. **الرياضيات:** اكتب المعادلات بـ LaTeX فقط ($$...$$).
 
-        🎨 بروتوكول الرسم (GEOGEBRA QUALITY - THIN LINES):
-        - أنشئ رسماً SVG احترافي Vector.
-        - **Coordinates:** Invert Y-axis (multiply Y by -1).
-        - **Visual Specs (STRICT):**
-          * ViewBox: "-10 -10 20 20"
-          * Grid: stroke="#cbd5e1" stroke-width="0.05" (Very thin, like graph paper).
-          * Axes: stroke="black" stroke-width="0.15" (Sharp lines).
-          * Function Curve: stroke="#2563eb" stroke-width="0.2" (Clean, NOT thick).
-          * Resolution: Calculate many points for smooth curves.
+        🎨 GRAPHING ENGINE (SVG VECTOR):
+        - **Objective:** GeoGebra-quality plotting.
+        - **Y-Axis Correction:** SVG Y-axis points DOWN. You MUST calculate y_svg = -1 * y_math.
+        - **Viewport:** viewBox="-10 -10 20 20" (Standard Grid).
+        - **Elements:**
+          * **Grid:** <path d='...' stroke='#e2e8f0' stroke-width='0.05' /> (Very faint).
+          * **Axes:** <line ... stroke='#0f172a' stroke-width='0.15' /> (Sharp black).
+          * **Function:** <path ... stroke='#2563eb' stroke-width='0.2' fill='none' /> (Professional Blue).
+          * **Precision:** Use many points (step 0.1 or less) for smooth curves.
 
-        --- OUTPUT FORMAT (STRICT) ---
+        --- RESPONSE FORMAT ---
         <metadata>
         {
            "visuals": { 
                "type": "SVG", 
-               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'>...</svg>"
+               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'></svg>"
            }, 
-           "gamification": {"xp": 20, "badge": "Analyst"}
+           "gamification": {"xp": 10, "badge": "Analyst"}
         }
         </metadata>
         |||STREAM_DIVIDER|||
-        [شرحك هنا...]
+        [الشرح يبدأ هنا...]
         `;
 
         const level = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Request]: ${prompt}`;
+        const fullPrompt = `${systemInstruction}\n\n[Niveau: ${level}]\n[Question]: ${prompt}`;
 
-        // اختيار الموديلات من قائمة 2026
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // Stream Handling
+        // Stream Processing
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -153,6 +162,7 @@ export default async function handler(req, res) {
                         JSON.parse(cleanJson);
                         res.write(cleanJson + DIVIDER + content);
                     } catch (e) {
+                        // Fail-safe: إرسال بيانات فارغة لتجنب تعليق الواجهة
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
@@ -167,8 +177,8 @@ export default async function handler(req, res) {
         res.end();
 
     } catch (error) {
-        console.error("Handler Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: جاري الاتصال بخوادم 2026... يرجى إعادة المحاولة.`);
+        console.error("Critical Error:", error);
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: الضغط مرتفع جداً. يرجى الانتظار قليلاً.`);
         res.end();
     }
 }
