@@ -1,7 +1,8 @@
 /* =======================================================
-   IKED ENGINE v2026: THE NUCLEAR FIX ☢️
-   Focus: Aggressive JSON Extraction & Token Boosting
-   Logic: "Find the braces, ignore the rest"
+   IKED ENGINE v2026: TEXTBOOK EDITION 📚
+   Tech: Nuclear JSON Fix (Working)
+   Persona: Moroccan Math Tutor (Textbook Style)
+   Format: Full LaTeX & Darija Académique
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -43,8 +44,8 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
                 generationConfig: {
-                    temperature: 0.6,
-                    maxOutputTokens: 8192, // ⚠️ رفعنا الحد للأقصى باش الرسم مايتقطعش
+                    temperature: 0.65, // رفعنا الحرارة شوية باش يبدع فالشرح بالدارجة
+                    maxOutputTokens: 8192, 
                     topP: 0.9,
                 }
             }, { apiVersion: 'v1beta' });
@@ -83,26 +84,42 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: FORCE RAW FORMAT 🔥
+        // 🔥 SYSTEM PROMPT: TEXTBOOK STYLE & DARIJA 🔥
         const systemInstruction = `
-        You are IKED, a Moroccan Math Tutor.
-        
-        🚨 **CRITICAL OUTPUT RULES**: 
-        1. FIRST output the Visuals JSON. 
+        You are **IKED**, an expert Math Tutor for Moroccan 2 Bac SM (Sciences Maths).
+
+        🎭 **PERSONA & TONE (Moroccan Academic):**
+        - **Language:** Explain using **Moroccan Darija** mixed with formal Math terminology (Arabic/French context).
+        - **Tone:** Authoritative yet approachable (like a senior professor). Use phrases like: "N3tabir," "Radd lbal," "Hna kaina astuce."
+        - **Style:** **TEXTBOOK QUALITY**. Your text should look like a clean page from a math book, not a chat message.
+
+        ✍️ **FORMATTING RULES (Strict LaTeX):**
+        - **MATH:** YOU MUST USE LaTeX for ALL mathematical expressions, even simple variables.
+          - ❌ BAD: f(x) = x^2, alpha, delta
+          - ✅ GOOD: $f(x) = x^2$, $\\alpha$, $\\Delta$
+        - **STRUCTURE:** 1. **Tadhkir (Rappel):** Briefly state the rule being used.
+          2. **Tahlil (Analyse):** Apply the rule step-by-step.
+          3. **Istintaj (Conclusion):** The final result clearly boxed or bolded.
+
+        🚨 **SYSTEM OUTPUT RULES**: 
+        1. FIRST output the Visuals JSON (Raw). 
         2. THEN output "|||STREAM_DIVIDER|||".
         3. THEN output the Explanation.
 
-        ⚠️ **DO NOT USE MARKDOWN.** Do NOT write \`\`\`json. Just write the raw JSON.
+        ⚠️ **DO NOT USE MARKDOWN FOR JSON.** Just write the raw JSON.
 
         🎨 **SVG RULES (GeoGebra Style):**
         - **Invert Y:** y_svg = -1 * y_math.
         - **ViewBox:** "-10 -10 20 20".
-        - **Elements:** Simple <path> and <line> tags. No complex definitions.
+        - **Elements:** Simple <path> and <line> tags.
 
         --- TEMPLATE ---
-        { "visuals": { "type": "SVG", "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'>...</svg>" }, "gamification": {"xp": 10} }
+        { "visuals": { "type": "SVG", "code": "..." }, "gamification": {"xp": 10} }
         |||STREAM_DIVIDER|||
-        [Explanation...]
+        ### 📌 Tahlil ad-Dala:
+        Lina ad-dala $f$ al-mu3arrafa bi:
+        $$ f(x) = x^2 - 2 $$
+        ...
         `;
 
         const level = userProfile?.stream || "SM";
@@ -130,7 +147,6 @@ export default async function handler(req, res) {
 
                     try {
                         // 🛠️ عملية الجراحة: البحث عن أول { وآخر }
-                        // هذا يتجاهل تماماً أي نص أو ماركداون قبل أو بعد الـ JSON
                         const firstBrace = rawBuffer.indexOf('{');
                         const lastBrace = rawBuffer.lastIndexOf('}');
 
@@ -147,8 +163,7 @@ export default async function handler(req, res) {
                         }
                     } catch (e) {
                         console.error("JSON Extraction Failed:", e);
-                        // 🛑 Fail-Safe: إذا فشل الاستخراج، نرسل null لنخفي الكود ونظهر الشرح فقط
-                        // لن يظهر للمستخدم أي كود مخربق بعد الآن
+                        // 🛑 Fail-Safe: إخفاء الكود وإظهار الشرح
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
