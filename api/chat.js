@@ -1,8 +1,8 @@
 /* =======================================================
-   IKED ENGINE v2026: PURE JSON EDITION 💎
-   Architect: The World's Best Programmer
-   Models: STRICTLY FROM YOUR LIST
-   Features: No XML Tags, Pure JSON Header, Robust Parsing
+   IKED ENGINE v2026: FINAL PRODUCTION FIX 🚀
+   Persona: Moroccan Math Tutor (Smart & engaging)
+   Visuals: GeoGebra Vector Style (Hidden JSON)
+   Models: Strict User List (No hallucinations)
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -14,17 +14,17 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   1. STRATEGY: STRICT 2026 LIST (UNCHANGED) 🧠
+   1. SMART MODEL STRATEGY 🧠
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function", "curve", "plot"].some(k => q.includes(k));
+    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function", "curve", "plot", "lim", "integral"].some(k => q.includes(k));
 
     if (isComplex) {
         return [
-            "gemini-2.5-flash",       // الخيار الأول
-            "gemini-2.0-flash",       // الخيار الثاني
-            "gemini-flash-latest"     // الخيار الثالث
+            "gemini-2.5-flash",       // الأذكى والأسرع (001)
+            "gemini-2.0-flash",       // المستقر والقوي
+            "gemini-flash-latest"     // المنقذ
         ];
     }
 
@@ -36,7 +36,7 @@ function selectModelStrategy(query) {
 }
 
 /* =======================================================
-   2. RETRY LOGIC (BALANCED) ⚖️
+   2. ROBUST GENERATION LOGIC ⚙️
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
     for (const modelName of modelList) {
@@ -44,8 +44,8 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
                 generationConfig: {
-                    temperature: 0.5,       // متوازن: ذكي في الشرح ودقيق في الرسم
-                    maxOutputTokens: 2500,  // مساحة كافية للرسم والشرح
+                    temperature: 0.7,       // استعادة "روح" الأستاذ (ليس روبوتياً جداً)
+                    maxOutputTokens: 3000,  // مساحة كافية للرسم والشرح المفصل
                     topP: 0.9,
                 }
             }, { apiVersion: 'v1beta' });
@@ -55,8 +55,9 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
 
         } catch (error) {
             console.warn(`⚠️ [Skip] ${modelName}: ${error.message}`);
+            // انتظار ذكي عند الضغط
             if (error.message.includes("429") || error.message.includes("Quota")) {
-                await new Promise(r => setTimeout(r, 1500)); 
+                await new Promise(r => setTimeout(r, 2000)); 
             }
             continue; 
         }
@@ -65,6 +66,7 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
 }
 
 export default async function handler(req, res) {
+    // إعدادات الـ CORS والهيدر
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -84,42 +86,38 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: PURE JSON PROTOCOL (NO XML) 🔥
+        // 🔥 SYSTEM PROMPT: THE IKED PERSONA & GEOGEBRA SPECS 🔥
         const systemInstruction = `
-        🔴 IDENTITY: IKED, Prof de Maths (2 Bac SM Maroc). Professional, Warm, & Precise.
+        🔴 IDENTITY: You are **IKED**, a brilliant and engaging Moroccan Math Tutor (2 Bac SM). 
+        - **Tone:** Encouraging, strict on logic, uses "Darija" for emphasis (e.g., "Radd lbal", "Chof mzyan").
+        - **Goal:** Explain clearly, then illustrate perfectly.
 
-        ⚡ PROTOCOL (STRICT ORDER):
-        1. **HEADER:** Output a valid JSON object strictly containing the visuals.
-        2. **SEPARATOR:** Output exactly "|||STREAM_DIVIDER|||".
-        3. **BODY:** Output the explanation text in Arabic/Darija.
+        ⚡ OUTPUT PROTOCOL (STRICT ORDER):
+        1. **JSON OBJECT:** A single line JSON containing the visuals. **NO MARKDOWN, NO CODE BLOCKS.** Start directly with \`{\`.
+        2. **DIVIDER:** Exactly \`|||STREAM_DIVIDER|||\`.
+        3. **TEXT:** The explanation in Arabic/Darija.
 
-        🎨 GRAPHING ENGINE (GeoGebra Style):
-        - If NO graph is needed, output: {"visuals": null}
-        - If graph IS needed:
-          * **Y-Axis:** Invert Y (multiply by -1).
+        🎨 VISUALS ENGINE (GeoGebra Style):
+        - If the user asks for a drawing or function:
+          * **Y-Axis:** Multiply all Y values by -1 (SVG coordinates).
           * **ViewBox:** "-10 -10 20 20".
-          * **Styling:** Grid stroke="0.05", Curve stroke="0.2" (Blue).
-          * **Format:** Pure SVG code inside the JSON.
+          * **Grid:** stroke="#e2e8f0" stroke-width="0.05".
+          * **Curve:** stroke="#2563eb" stroke-width="0.15" (Smooth, precision step 0.1).
+        - If NO drawing is needed, output: \`{"visuals": null}\`
 
-        --- OUTPUT TEMPLATE (DO NOT ADD MARKDOWN OR XML) ---
-        {
-           "visuals": { 
-               "type": "SVG", 
-               "code": "<svg viewBox='-10 -10 20 20' xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)'>...</svg>"
-           }, 
-           "gamification": {"xp": 10}
-        }
+        --- EXAMPLE OUTPUT ---
+        {"visuals": {"type": "SVG", "code": "<svg viewBox='-10 -10 20 20' xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)'>...</svg>"}, "gamification": {"xp": 20}}
         |||STREAM_DIVIDER|||
-        [Start your explanation here...]
+        السلام عليكم! تمرين ممتاز. لاحظ أن الدالة معرفة على...
         `;
 
         const level = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Question]: ${prompt}`;
+        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Student Question]: ${prompt}`;
 
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // 🔥 ROBUST BUFFERING & PARSING 🔥
+        // 🔥 ROBUST STREAM BUFFERING & CLEANING 🔥
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -130,50 +128,54 @@ export default async function handler(req, res) {
             if (!isHeaderSent) {
                 buffer += chunkText;
                 
-                // البحث عن الفاصل
+                // ننتظر الفاصل
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
-                    const rawJson = parts[0]; // الجزء الأول هو الـ JSON
-                    const content = parts.slice(1).join(DIVIDER); // الباقي هو الشرح
+                    const rawJson = parts[0]; 
+                    const content = parts.slice(1).join(DIVIDER);
 
                     try {
-                        // 🧹 تنظيف عميق جداً لإزالة أي شوائب
-                        let cleanJson = rawJson
-                            .replace(/```json/g, "")  // إزالة كود ماركداون
-                            .replace(/```/g, "")      // إزالة الإغلاق
-                            .replace(/<metadata>/g, "") // احتياطاً
-                            .replace(/<\/metadata>/g, "")
-                            .trim();
+                        // 🧹 تنظيف قوي جداً: إزالة أي ماركداون أو نصوص قبل الـ JSON
+                        let cleanJson = rawJson.trim();
+                        // إزالة ```json أو ``` في البداية والنهاية
+                        cleanJson = cleanJson.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
+                        
+                        // محاولة إيجاد JSON إذا كان هناك نص قبله
+                        const jsonStartIndex = cleanJson.indexOf('{');
+                        const jsonEndIndex = cleanJson.lastIndexOf('}');
+                        if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
+                            cleanJson = cleanJson.substring(jsonStartIndex, jsonEndIndex + 1);
+                        }
 
-                        // التحقق من صحة الـ JSON قبل الإرسال
+                        // التحقق النهائي
                         JSON.parse(cleanJson);
                         
-                        // إرسال الهيدر النظيف
+                        // إرسال الهيدر النظيف + الفاصل + المحتوى
                         res.write(cleanJson + DIVIDER + content);
                     } catch (e) {
-                        console.error("JSON Parse Error:", e);
-                        // خطة الطوارئ: إذا فشل الـ JSON، أرسل null وأكمل الشرح
-                        // هذا يمنع ظهور الكود للمستخدم
+                        console.error("JSON Clean Error:", e);
+                        // في حالة الفشل التام، نرسل null لتجنب ظهور الكود للمستخدم
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
                     buffer = "";
                 }
             } else {
-                // إرسال الشرح مباشرة بعد تجاوز الهيدر
+                // بعد إرسال الهيدر، نرسل باقي الشرح مباشرة
                 res.write(chunkText);
             }
         }
         
-        // إذا انتهى الرد ولم يتم العثور على الفاصل (حالة نادرة)، نرسل النص فقط
+        // إغلاق الستريم بأمان
         if (!isHeaderSent && buffer) {
+            // إذا لم نجد الفاصل أبداً، نرسل النص فقط
             res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
         }
         res.end();
 
     } catch (error) {
         console.error("Handler Error:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: Server is busy, retrying...`);
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: Server reset. Please retry.`);
         res.end();
     }
 }
