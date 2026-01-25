@@ -1,8 +1,7 @@
 /* =======================================================
-   IKED ENGINE v2026: ADAPTIVE EDITION 🧠
-   Mode: Concise & Responsive (On-Demand)
-   Language: Darija + Arabic Math (No yapping)
-   Visuals: Only when requested
+   IKED ENGINE v2026: PROACTIVE & FAST ⚡
+   Fixes: Auto-detects need for drawing (not just keywords)
+   Speed: Optimized SVG precision for faster tokens
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -15,17 +14,25 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   1. STRATEGY: STRICT 2026 LIST
+   1. STRATEGY: SMART DETECTION
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    // نكتشف هل طلب المستخدم الرسم صراحة
-    const wantsDrawing = ["رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph"].some(k => q.includes(k));
+    
+    // وسعنا قائمة الكلمات باش يفهم أي تلميح للرسم
+    const visualKeywords = [
+        "رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph", 
+        "دالة", "function", "courbe", "trace", "representation", 
+        "tamthil", "tamtil", "bayan", "mabyan", "handasa"
+    ];
+    
+    const needsVisuals = visualKeywords.some(k => q.includes(k));
 
-    if (wantsDrawing) {
+    if (needsVisuals) {
+        // نستخدم الموديلات القوية للرسم
         return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
     }
-    // للأسئلة العادية، نستخدم الموديلات السريعة والخفيفة
+    // للأسئلة النصية الخفيفة
     return ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite-preview-02-05", "gemini-flash-lite-latest"]; 
 }
 
@@ -38,8 +45,8 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
                 generationConfig: {
-                    temperature: 0.6, // حرارة متوسطة للرزانة
-                    maxOutputTokens: 4000, 
+                    temperature: 0.6, 
+                    maxOutputTokens: 5000, // كافي للرسم والشرح
                     topP: 0.9,
                 }
             }, { apiVersion: 'v1beta' });
@@ -49,13 +56,14 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
 
         } catch (error) {
             console.warn(`⚠️ [Skip] ${modelName}: ${error.message}`);
+            // تقليص وقت الانتظار لتسريع التجاوب عند الخطأ
             if (error.message.includes("429") || error.message.includes("Quota")) {
-                await new Promise(r => setTimeout(r, 2000)); 
+                await new Promise(r => setTimeout(r, 1000)); 
             }
             continue; 
         }
     }
-    throw new Error("System Overload.");
+    throw new Error("IKED System Overload.");
 }
 
 export default async function handler(req, res) {
@@ -78,38 +86,36 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: CONCISE & RESPONSIVE 🔥
+        // 🔥 SYSTEM PROMPT: PROACTIVE VISUALS & OPTIMIZED SPEED 🔥
         const systemInstruction = `
         You are **IKED**, a smart Moroccan Math Tutor.
 
-        ⚡ **CORE BEHAVIOR RULES (Strict):**
-        1. **Weight of the Answer:** Match the length of your answer to the user's question.
-           - Simple question ("Salam", "Chno hiya dala?") -> Short, direct answer.
-           - Complex question ("Dir liya tahlil...") -> Detailed answer.
-           - **DO NOT YAP.** Do not write long introductions or conclusions unless asked.
-        
-        2. **Language:** Use **Moroccan Darija** mixed with clear Arabic Math terms.
-           - Example: "Hna 3ndna mochkil f l'limite, khassna n3mlo b x."
-        
-        3. **Visuals (On-Demand Only):** - **ONLY** output a JSON graph if the user EXPLICITLY asks for it (e.g., "Rsom liya", "Draw this").
-           - If no graph is asked, output \`{"visuals": null}\` immediately.
+        ⚡ **BEHAVIOR RULES:**
+        1. **Proactive Visuals:** - IF the user asks about a **Function ($f(x)$)**, **Geometry**, or **Graphing** -> **YOU MUST DRAW IT.**
+           - Don't wait for the word "Draw". If the context is visual, provide the JSON.
+           - If strictly text (e.g., "Solve x+1=0"), output \`{"visuals": null}\`.
 
-        4. **Formatting:** Use LaTeX ($...$) for math formulas. Keep it clean.
+        2. **Concise & Moroccan:** - Answer directly using **Darija** + **Arabic Math Terms**.
+           - Don't write long paragraphs unless asked to explain deeply.
+           - Example: "Hada howa l-monhana, kima katchouf fih moqarib..."
+
+        3. **Formatting:** Use LaTeX ($...$) for math.
+
+        🚀 **SVG OPTIMIZATION (FOR SPEED):**
+        - **Precision:** Limit coordinates to 2 decimal places (e.g., 3.14, not 3.141592).
+        - **Invert Y:** y_svg = -1 * y_math.
+        - **ViewBox:** "-10 -10 20 20".
+        - **Simplicity:** Use simple <path> commands.
 
         🚨 **OUTPUT FORMAT:**
-        1. JSON Object (Visuals or Null).
+        1. JSON Object.
         2. "|||STREAM_DIVIDER|||"
-        3. The Text Response.
-
-        --- SVG RULES (If asked) ---
-        - Invert Y: y = -1 * y
-        - ViewBox: "-10 -10 20 20"
-        - Simple <path> and <line>.
+        3. Text Response.
 
         --- TEMPLATE ---
-        { "visuals": null }
+        { "visuals": { "type": "SVG", "code": "..." }, "gamification": {"xp": 10} }
         |||STREAM_DIVIDER|||
-        Wa alaykum salam! Kifach n9der n3awnek f l'math lyouma?
+        Lina n3tabir ad-dala $f(x) = x^2$. Hada howa l-monhana dyalha:
         `;
 
         const level = userProfile?.stream || "SM";
@@ -118,7 +124,7 @@ export default async function handler(req, res) {
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // 🔥 JSON EXTRACTION LOGIC 🔥
+        // 🔥 ROBUST JSON EXTRACTION 🔥
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -135,18 +141,21 @@ export default async function handler(req, res) {
                     const content = parts.slice(1).join(DIVIDER);
 
                     try {
+                        // Extraction Logic: Find first { and last }
                         const firstBrace = rawBuffer.indexOf('{');
                         const lastBrace = rawBuffer.lastIndexOf('}');
 
                         if (firstBrace !== -1 && lastBrace !== -1) {
                             let cleanJson = rawBuffer.substring(firstBrace, lastBrace + 1);
+                            // Validate JSON
                             JSON.parse(cleanJson);
                             res.write(cleanJson + DIVIDER + content);
                         } else {
-                            // If no JSON found (rare), assume null visual
+                            // No valid JSON block found
                             res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                         }
                     } catch (e) {
+                        // JSON parsing failed, hide it and show text
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
