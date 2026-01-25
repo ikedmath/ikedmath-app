@@ -1,7 +1,7 @@
 /* =======================================================
-   IKED ENGINE v2026: PROACTIVE & FAST ⚡
-   Fixes: Auto-detects need for drawing (not just keywords)
-   Speed: Optimized SVG precision for faster tokens
+   IKED ENGINE v2026: MOROCCAN TEXTBOOK EDITION 🇲🇦📚
+   Logic: "Nuclear Fix" (JSON Extraction) + Token Boost
+   Persona: Prof Darija + Math Book Style
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -14,30 +14,28 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   1. STRATEGY: SMART DETECTION
+   1. STRATEGY: STRICT 2026 LIST
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    
-    // وسعنا قائمة الكلمات باش يفهم أي تلميح للرسم
-    const visualKeywords = [
-        "رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph", 
-        "دالة", "function", "courbe", "trace", "representation", 
-        "tamthil", "tamtil", "bayan", "mabyan", "handasa"
-    ];
-    
-    const needsVisuals = visualKeywords.some(k => q.includes(k));
+    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function"].some(k => q.includes(k));
 
-    if (needsVisuals) {
-        // نستخدم الموديلات القوية للرسم
-        return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+    if (isComplex) {
+        return [
+            "gemini-2.5-flash",       // (001) الذكي
+            "gemini-2.0-flash",       // (2.0) المستقر
+            "gemini-flash-latest"     // المنقذ
+        ];
     }
-    // للأسئلة النصية الخفيفة
-    return ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite-preview-02-05", "gemini-flash-lite-latest"]; 
+    return [
+        "gemini-2.5-flash-lite",              
+        "gemini-2.0-flash-lite-preview-02-05", 
+        "gemini-flash-lite-latest"            
+    ]; 
 }
 
 /* =======================================================
-   2. GENERATION LOGIC
+   2. GENERATION LOGIC (MAX TOKENS)
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
     for (const modelName of modelList) {
@@ -45,8 +43,8 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
                 generationConfig: {
-                    temperature: 0.6, 
-                    maxOutputTokens: 5000, // كافي للرسم والشرح
+                    temperature: 0.65, // رفعنا الحرارة قليلاً للسماح بالدارجة السلسة
+                    maxOutputTokens: 8192, 
                     topP: 0.9,
                 }
             }, { apiVersion: 'v1beta' });
@@ -56,14 +54,13 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
 
         } catch (error) {
             console.warn(`⚠️ [Skip] ${modelName}: ${error.message}`);
-            // تقليص وقت الانتظار لتسريع التجاوب عند الخطأ
             if (error.message.includes("429") || error.message.includes("Quota")) {
-                await new Promise(r => setTimeout(r, 1000)); 
+                await new Promise(r => setTimeout(r, 2000)); 
             }
             continue; 
         }
     }
-    throw new Error("IKED System Overload.");
+    throw new Error("System Overload.");
 }
 
 export default async function handler(req, res) {
@@ -86,36 +83,41 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: PROACTIVE VISUALS & OPTIMIZED SPEED 🔥
+        // 🔥 SYSTEM PROMPT: TEXTBOOK STYLE & DARIJA 🔥
         const systemInstruction = `
-        You are **IKED**, a smart Moroccan Math Tutor.
+        You are **IKED**, an expert Math Tutor for Moroccan 2 Bac SM (Sciences Maths).
 
-        ⚡ **BEHAVIOR RULES:**
-        1. **Proactive Visuals:** - IF the user asks about a **Function ($f(x)$)**, **Geometry**, or **Graphing** -> **YOU MUST DRAW IT.**
-           - Don't wait for the word "Draw". If the context is visual, provide the JSON.
-           - If strictly text (e.g., "Solve x+1=0"), output \`{"visuals": null}\`.
+        🗣️ **LANGUAGE & TONE (Moroccan Academic):**
+        1. **Explanation:** Use **Moroccan Darija** (The style used by teachers in class).
+           - Keywords to use: "N3tabir" (نعتبر), "Ladayna" (لدينا), "Hna kaina astuce" (هنا كاينة قوالب), "Radd lbal mzyan" (رد البال مزيان), "Idan" (إذن).
+        2. **Math Notation:** Use **Formal Arabic/International Math Syntax** (Textbook style).
+           - Do not use plain text for math. Use LaTeX for EVERYTHING.
 
-        2. **Concise & Moroccan:** - Answer directly using **Darija** + **Arabic Math Terms**.
-           - Don't write long paragraphs unless asked to explain deeply.
-           - Example: "Hada howa l-monhana, kima katchouf fih moqarib..."
+        📚 **TEXTBOOK FORMATTING (Strict):**
+        - **Structure your answer exactly like a Moroccan Math Textbook:**
+           1. **Tadhkir (Rappel):** Briefly state the theorem or rule being used.
+           2. **Tahlil (Démarche):** Step-by-step logical calculation.
+           3. **Istintaj (Conclusion):** The final result clearly boxed or bolded.
 
-        3. **Formatting:** Use LaTeX ($...$) for math.
+        🚨 **CRITICAL OUTPUT RULES**: 
+        1. FIRST output the Visuals JSON. 
+        2. THEN output "|||STREAM_DIVIDER|||".
+        3. THEN output the Explanation.
 
-        🚀 **SVG OPTIMIZATION (FOR SPEED):**
-        - **Precision:** Limit coordinates to 2 decimal places (e.g., 3.14, not 3.141592).
+        ⚠️ **DO NOT USE MARKDOWN.** Do NOT write \`\`\`json. Just write the raw JSON.
+
+        🎨 **SVG RULES (GeoGebra Style):**
         - **Invert Y:** y_svg = -1 * y_math.
         - **ViewBox:** "-10 -10 20 20".
-        - **Simplicity:** Use simple <path> commands.
-
-        🚨 **OUTPUT FORMAT:**
-        1. JSON Object.
-        2. "|||STREAM_DIVIDER|||"
-        3. Text Response.
+        - **Elements:** Simple <path> and <line> tags. No complex definitions.
 
         --- TEMPLATE ---
-        { "visuals": { "type": "SVG", "code": "..." }, "gamification": {"xp": 10} }
+        { "visuals": { "type": "SVG", "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'>...</svg>" }, "gamification": {"xp": 10} }
         |||STREAM_DIVIDER|||
-        Lina n3tabir ad-dala $f(x) = x^2$. Hada howa l-monhana dyalha:
+        ### 📌 Tahlil ad-Dala:
+        N3tabir ad-dala $f$ al-mu3arrafa bi:
+        $$ f(x) = x^2 - 2 $$
+        awwalan, ladayna majmou3at at-ta3rif hiya $\\mathbb{R}$...
         `;
 
         const level = userProfile?.stream || "SM";
@@ -124,7 +126,7 @@ export default async function handler(req, res) {
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // 🔥 ROBUST JSON EXTRACTION 🔥
+        // 🔥 LOGIC: SURGICAL JSON EXTRACTION 🔥
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -135,27 +137,33 @@ export default async function handler(req, res) {
             if (!isHeaderSent) {
                 buffer += chunkText;
                 
+                // ننتظر الفاصل
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
                     const rawBuffer = parts[0]; 
                     const content = parts.slice(1).join(DIVIDER);
 
                     try {
-                        // Extraction Logic: Find first { and last }
+                        // 🛠️ عملية الجراحة: البحث عن أول { وآخر }
+                        // هذا يتجاهل تماماً أي نص أو ماركداون قبل أو بعد الـ JSON
                         const firstBrace = rawBuffer.indexOf('{');
                         const lastBrace = rawBuffer.lastIndexOf('}');
 
                         if (firstBrace !== -1 && lastBrace !== -1) {
                             let cleanJson = rawBuffer.substring(firstBrace, lastBrace + 1);
-                            // Validate JSON
+                            
+                            // التحقق من الصحة
                             JSON.parse(cleanJson);
+                            
+                            // إرسال الـ JSON النظيف فقط
                             res.write(cleanJson + DIVIDER + content);
                         } else {
-                            // No valid JSON block found
-                            res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
+                            throw new Error("No JSON found");
                         }
                     } catch (e) {
-                        // JSON parsing failed, hide it and show text
+                        console.error("JSON Extraction Failed:", e);
+                        // 🛑 Fail-Safe: إذا فشل الاستخراج، نرسل null لنخفي الكود ونظهر الشرح فقط
+                        // لن يظهر للمستخدم أي كود مخربق بعد الآن
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
@@ -166,6 +174,7 @@ export default async function handler(req, res) {
             }
         }
         
+        // إغلاق آمن
         if (!isHeaderSent && buffer) {
              res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
         }
