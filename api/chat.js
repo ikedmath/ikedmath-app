@@ -1,7 +1,6 @@
 /* =======================================================
-   IKED ENGINE v2026: ULTIMATE EDITION 💎
-   Architect: The World's Best Programmer
-   Architecture: The 4-Layer Engineering Roadmap
+   IKED ENGINE v2026: STABLE CONTROL 🛑
+   Fix: Added Token Limits & Temperature Control to prevent hallucinations
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -13,63 +12,44 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   LAYER 4: BRAIN & ROUTING (MODEL LOGIC) 🧠
+   LOGIC: MODEL SELECTION
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    
-    // كلمات مفتاحية تتطلب "محرك الرسم" (Rendering Engine)
-    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function", "curve", "plot", "lim", "integral"].some(k => q.includes(k));
+    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function"].some(k => q.includes(k));
 
     if (isComplex) {
-        // 🔥 القوة الضاربة (للرسم والتحليل)
-        return [
-            "gemini-2.5-flash",       // (001) الموديل الأساسي: ذكي وسريع
-            "gemini-2.0-flash",       // (2.0) الاحتياطي المستقر
-            "gemini-2.5-pro"          // (2.5) للتحليل العميق (عند الضرورة)
-        ];
+        // نستخدم الموديلات المستقرة فقط للرسم لتجنب الجنون
+        return ["gemini-2.0-flash", "gemini-1.5-flash"];
     }
-
-    // 🔥 السرعة القصوى (للأسئلة النصية)
-    return [
-        "gemini-2.5-flash-lite",             // (001) الأسرع عالمياً
-        "gemini-2.0-flash-lite-preview-02-05", // (preview) خيار مجاني ممتاز
-        "gemini-2.0-flash-lite"              // الاحتياطي
-    ]; 
+    return ["gemini-2.5-flash-lite", "gemini-1.5-flash"]; 
 }
 
 /* =======================================================
-   LAYER 3: DATA PIPELINE (RETRY & BACKOFF) 📈
+   LOGIC: RETRY WITH BRAKES 🛑
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
-    let lastError = null;
-
     for (const modelName of modelList) {
-        // محاولتان لكل موديل مع انتظار ذكي
-        for (let attempt = 1; attempt <= 2; attempt++) {
-            try {
-                // ملاحظة: موديلات 2026 تتطلب v1beta
-                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
-                const result = await model.generateContentStream(fullPrompt);
-                return result.stream;
-
-            } catch (error) {
-                console.warn(`⚠️ [Retry] ${modelName} (Attempt ${attempt}): ${error.message}`);
-                lastError = error;
-
-                // استراتيجية التراجع الذكي (Exponential Backoff)
-                if (error.message.includes("429") || error.message.includes("Quota")) {
-                    const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s...
-                    await new Promise(r => setTimeout(r, waitTime));
-                    continue; 
+        try {
+            // 🔥 ضبط الإعدادات (Generation Config) لضبط الانضباط
+            const model = genAI.getGenerativeModel({ 
+                model: modelName,
+                generationConfig: {
+                    temperature: 0.4,       // تخفيض الإبداع لزيادة الدقة
+                    maxOutputTokens: 2000,  // حد أقصى للكلام لمنع الهذيان الطويل
+                    topP: 0.8,
                 }
-                
-                // خطأ تقني (404) -> تجاوز الموديل فوراً
-                break; 
-            }
+            }, { apiVersion: 'v1beta' });
+
+            const result = await model.generateContentStream(fullPrompt);
+            return result.stream;
+
+        } catch (error) {
+            console.warn(`[Skip] ${modelName}: ${error.message}`);
+            continue; 
         }
     }
-    throw new Error("IKED System Overload. Please wait 30 seconds.");
+    throw new Error("System Busy.");
 }
 
 export default async function handler(req, res) {
@@ -92,51 +72,42 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥🔥🔥 LAYER 1 & 2: CALIBRATION & RENDERING ENGINE PROMPT 🔥🔥🔥
+        // 🔥 SYSTEM PROMPT: SIMPLIFIED & DIRECT 🔥
         const systemInstruction = `
-        🔴 IDENTITY:
-        أنت "IKED"، أستاذ رياضيات مغربي (2 Bac SM). صارم، دقيق، ومنهجي.
+        🔴 IDENTITY: IKED, Math Tutor (2 Bac SM). Strict & Precise.
 
-        ⚡ PROTOCOL (القواعد الصارمة):
-        1. **اللغة:** الشرح بالعربية الفصحى مع الدارجة العلمية المغربية.
-        2. **المنهجية:** تذكير (Rappel) -> تطبيق (Application) -> نتيجة.
-        3. **الرياضيات:** LaTeX للمعادلات ($$...$$).
+        ⚡ OUTPUT RULES:
+        1. **Explanation Language:** Arabic + Darija Science terms.
+        2. **Math:** Use LaTeX ($$).
+        3. **Visuals:** Generate SVG code ONLY inside the JSON metadata.
 
-        🎨 GRAPHING ENGINE (LAYER 1 & 2 - GEOGEBRA STANDARD):
-        - **Objective:** Create High-Fidelity Vector Plots.
-        - **Unit Standardization:** Assume 1 Unit = 20px.
-        
-        1. **CALIBRATION (The Thin Pen Rule):**
-           - **Grid:** <path ... stroke='#e2e8f0' stroke-width='0.05' /> (Must be extremely thin).
-           - **Axes:** <line ... stroke='#0f172a' stroke-width='0.15' /> (Sharp and clear).
-           - **Function:** <path ... stroke='#2563eb' stroke-width='0.2' /> (Professional Blue).
+        🎨 SVG RULES (Keep it Simple & Correct):
+        - **Y-Axis:** Multiply Y by -1.
+        - **ViewBox:** "-10 -10 20 20".
+        - **Style:** Thin lines (stroke-width="0.1").
+        - **IMPORTANT:** Do NOT generate infinite points. Use reasonable step (e.g., 0.2).
 
-        2. **RENDERING LOGIC:**
-           - **Gravity Inversion:** SVG Y-axis is down. You MUST calculate: **y_svg = -1 * y_math**.
-           - **High Sampling Rate:** Calculate a point every **0.1 step** (e.g., for range -5 to 5, generate 100 points). Do NOT just connect integers.
-           - **Dynamic Viewport:** Use viewBox="-10 -10 20 20" by default, but adjust if the function goes out of bounds.
-
-        --- RESPONSE FORMAT (STRICT JSON) ---
+        --- STRICT RESPONSE FORMAT ---
         <metadata>
         {
            "visuals": { 
                "type": "SVG", 
-               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'><defs><pattern id='grid' width='1' height='1' patternUnits='userSpaceOnUse'><path d='M 1 0 L 0 0 0 1' fill='none' stroke='#e2e8f0' stroke-width='0.05'/></pattern></defs><rect width='100%' height='100%' fill='url(#grid)' x='-10' y='-10'/><line x1='-10' y1='0' x2='10' y2='0' stroke='black' stroke-width='0.15'/><line x1='0' y1='-10' x2='0' y2='10' stroke='black' stroke-width='0.15'/><path d='M -10 ...' fill='none' stroke='#2563eb' stroke-width='0.2'/></svg>"
+               "code": "<svg viewBox='-10 -10 20 20' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' fill='white'/><path d='M-10 0 H10 M0 -10 V10' stroke='black' stroke-width='0.1'/><path d='...' stroke='blue' stroke-width='0.2' fill='none'/></svg>"
            }, 
-           "gamification": {"xp": 10, "badge": "Analyst"}
+           "gamification": {"xp": 10, "badge": null}
         }
         </metadata>
         |||STREAM_DIVIDER|||
-        [الشرح يبدأ هنا...]
+        [Explanation Starts Here]
         `;
 
         const level = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Niveau: ${level}]\n[Question]: ${prompt}`;
+        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[Question]: ${prompt}`;
 
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // 🔥 LAYER 3: DATA PIPELINE (BUFFERING)
+        // Stream Handling
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -146,14 +117,12 @@ export default async function handler(req, res) {
             
             if (!isHeaderSent) {
                 buffer += chunkText;
-                // ننتظر حتى نجد الفاصل للتأكد من اكتمال الرأس
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
                     const rawMeta = parts[0];
                     const content = parts.slice(1).join(DIVIDER);
 
                     try {
-                        // تنظيف صارم للـ JSON
                         let cleanJson = rawMeta
                             .replace(/<metadata>/g, "")
                             .replace(/<\/metadata>/g, "")
@@ -161,21 +130,16 @@ export default async function handler(req, res) {
                             .replace(/```/g, "")
                             .trim();
 
-                        // التحقق من الصلاحية
                         JSON.parse(cleanJson);
-                        
-                        // إرسال البيانات النظيفة
                         res.write(cleanJson + DIVIDER + content);
                     } catch (e) {
-                        console.error("JSON Pipeline Error:", e);
-                        // Fail-safe: إرسال بيانات فارغة لتجنب تشوه الشات
+                        // Fallback: Empty visual to prevent crash
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
                     buffer = "";
                 }
             } else {
-                // البث المباشر للشرح (بعد اجتياز نقطة التفتيش)
                 res.write(chunkText);
             }
         }
@@ -184,8 +148,8 @@ export default async function handler(req, res) {
         res.end();
 
     } catch (error) {
-        console.error("Handler Failure:", error);
-        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: النظام تحت الصيانة اللحظية (تحديث المعايير). يرجى المحاولة.`);
+        console.error("Error:", error);
+        res.write(`|||STREAM_DIVIDER|||⚠️ IKED: Please retry.`);
         res.end();
     }
 }
