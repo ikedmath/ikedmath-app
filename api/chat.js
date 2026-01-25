@@ -1,8 +1,8 @@
 /* =======================================================
-   IKED ENGINE v2026: TEXTBOOK EDITION 📚
-   Tech: Nuclear JSON Fix (Working)
-   Persona: Moroccan Math Tutor (Textbook Style)
-   Format: Full LaTeX & Darija Académique
+   IKED ENGINE v2026: ADAPTIVE EDITION 🧠
+   Mode: Concise & Responsive (On-Demand)
+   Language: Darija + Arabic Math (No yapping)
+   Visuals: Only when requested
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -19,24 +19,18 @@ const ALLOWED_ORIGINS = [
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    const isComplex = ["رسم", "draw", "svg", "هندسة", "دالة", "function"].some(k => q.includes(k));
+    // نكتشف هل طلب المستخدم الرسم صراحة
+    const wantsDrawing = ["رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph"].some(k => q.includes(k));
 
-    if (isComplex) {
-        return [
-            "gemini-2.5-flash",       // (001) الذكي
-            "gemini-2.0-flash",       // (2.0) المستقر
-            "gemini-flash-latest"     // المنقذ
-        ];
+    if (wantsDrawing) {
+        return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
     }
-    return [
-        "gemini-2.5-flash-lite",              
-        "gemini-2.0-flash-lite-preview-02-05", 
-        "gemini-flash-lite-latest"            
-    ]; 
+    // للأسئلة العادية، نستخدم الموديلات السريعة والخفيفة
+    return ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite-preview-02-05", "gemini-flash-lite-latest"]; 
 }
 
 /* =======================================================
-   2. GENERATION LOGIC (MAX TOKENS)
+   2. GENERATION LOGIC
    ======================================================= */
 async function generateWithRetry(genAI, modelList, fullPrompt) {
     for (const modelName of modelList) {
@@ -44,8 +38,8 @@ async function generateWithRetry(genAI, modelList, fullPrompt) {
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
                 generationConfig: {
-                    temperature: 0.65, // رفعنا الحرارة شوية باش يبدع فالشرح بالدارجة
-                    maxOutputTokens: 8192, 
+                    temperature: 0.6, // حرارة متوسطة للرزانة
+                    maxOutputTokens: 4000, 
                     topP: 0.9,
                 }
             }, { apiVersion: 'v1beta' });
@@ -84,42 +78,38 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 🔥 SYSTEM PROMPT: TEXTBOOK STYLE & DARIJA 🔥
+        // 🔥 SYSTEM PROMPT: CONCISE & RESPONSIVE 🔥
         const systemInstruction = `
-        You are **IKED**, an expert Math Tutor for Moroccan 2 Bac SM (Sciences Maths).
+        You are **IKED**, a smart Moroccan Math Tutor.
 
-        🎭 **PERSONA & TONE (Moroccan Academic):**
-        - **Language:** Explain using **Moroccan Darija** mixed with formal Math terminology (Arabic/French context).
-        - **Tone:** Authoritative yet approachable (like a senior professor). Use phrases like: "N3tabir," "Radd lbal," "Hna kaina astuce."
-        - **Style:** **TEXTBOOK QUALITY**. Your text should look like a clean page from a math book, not a chat message.
+        ⚡ **CORE BEHAVIOR RULES (Strict):**
+        1. **Weight of the Answer:** Match the length of your answer to the user's question.
+           - Simple question ("Salam", "Chno hiya dala?") -> Short, direct answer.
+           - Complex question ("Dir liya tahlil...") -> Detailed answer.
+           - **DO NOT YAP.** Do not write long introductions or conclusions unless asked.
+        
+        2. **Language:** Use **Moroccan Darija** mixed with clear Arabic Math terms.
+           - Example: "Hna 3ndna mochkil f l'limite, khassna n3mlo b x."
+        
+        3. **Visuals (On-Demand Only):** - **ONLY** output a JSON graph if the user EXPLICITLY asks for it (e.g., "Rsom liya", "Draw this").
+           - If no graph is asked, output \`{"visuals": null}\` immediately.
 
-        ✍️ **FORMATTING RULES (Strict LaTeX):**
-        - **MATH:** YOU MUST USE LaTeX for ALL mathematical expressions, even simple variables.
-          - ❌ BAD: f(x) = x^2, alpha, delta
-          - ✅ GOOD: $f(x) = x^2$, $\\alpha$, $\\Delta$
-        - **STRUCTURE:** 1. **Tadhkir (Rappel):** Briefly state the rule being used.
-          2. **Tahlil (Analyse):** Apply the rule step-by-step.
-          3. **Istintaj (Conclusion):** The final result clearly boxed or bolded.
+        4. **Formatting:** Use LaTeX ($...$) for math formulas. Keep it clean.
 
-        🚨 **SYSTEM OUTPUT RULES**: 
-        1. FIRST output the Visuals JSON (Raw). 
-        2. THEN output "|||STREAM_DIVIDER|||".
-        3. THEN output the Explanation.
+        🚨 **OUTPUT FORMAT:**
+        1. JSON Object (Visuals or Null).
+        2. "|||STREAM_DIVIDER|||"
+        3. The Text Response.
 
-        ⚠️ **DO NOT USE MARKDOWN FOR JSON.** Just write the raw JSON.
-
-        🎨 **SVG RULES (GeoGebra Style):**
-        - **Invert Y:** y_svg = -1 * y_math.
-        - **ViewBox:** "-10 -10 20 20".
-        - **Elements:** Simple <path> and <line> tags.
+        --- SVG RULES (If asked) ---
+        - Invert Y: y = -1 * y
+        - ViewBox: "-10 -10 20 20"
+        - Simple <path> and <line>.
 
         --- TEMPLATE ---
-        { "visuals": { "type": "SVG", "code": "..." }, "gamification": {"xp": 10} }
+        { "visuals": null }
         |||STREAM_DIVIDER|||
-        ### 📌 Tahlil ad-Dala:
-        Lina ad-dala $f$ al-mu3arrafa bi:
-        $$ f(x) = x^2 - 2 $$
-        ...
+        Wa alaykum salam! Kifach n9der n3awnek f l'math lyouma?
         `;
 
         const level = userProfile?.stream || "SM";
@@ -128,7 +118,7 @@ export default async function handler(req, res) {
         const models = selectModelStrategy(prompt);
         const stream = await generateWithRetry(genAI, models, fullPrompt);
 
-        // 🔥 LOGIC: SURGICAL JSON EXTRACTION 🔥
+        // 🔥 JSON EXTRACTION LOGIC 🔥
         let buffer = "";
         let isHeaderSent = false;
         const DIVIDER = "|||STREAM_DIVIDER|||";
@@ -139,31 +129,24 @@ export default async function handler(req, res) {
             if (!isHeaderSent) {
                 buffer += chunkText;
                 
-                // ننتظر الفاصل
                 if (buffer.includes(DIVIDER)) {
                     const parts = buffer.split(DIVIDER);
                     const rawBuffer = parts[0]; 
                     const content = parts.slice(1).join(DIVIDER);
 
                     try {
-                        // 🛠️ عملية الجراحة: البحث عن أول { وآخر }
                         const firstBrace = rawBuffer.indexOf('{');
                         const lastBrace = rawBuffer.lastIndexOf('}');
 
                         if (firstBrace !== -1 && lastBrace !== -1) {
                             let cleanJson = rawBuffer.substring(firstBrace, lastBrace + 1);
-                            
-                            // التحقق من الصحة
                             JSON.parse(cleanJson);
-                            
-                            // إرسال الـ JSON النظيف فقط
                             res.write(cleanJson + DIVIDER + content);
                         } else {
-                            throw new Error("No JSON found");
+                            // If no JSON found (rare), assume null visual
+                            res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                         }
                     } catch (e) {
-                        console.error("JSON Extraction Failed:", e);
-                        // 🛑 Fail-Safe: إخفاء الكود وإظهار الشرح
                         res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
                     isHeaderSent = true;
@@ -174,7 +157,6 @@ export default async function handler(req, res) {
             }
         }
         
-        // إغلاق آمن
         if (!isHeaderSent && buffer) {
              res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
         }
