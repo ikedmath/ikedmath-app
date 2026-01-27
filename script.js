@@ -3,8 +3,8 @@
    Architect: The World's Best Programmer
    Features:
    - NDJSON Streaming (Zero Latency).
-   - Live MathJax Rendering.
-   - Robust Event Handling.
+   - Live MathJax & Markdown Rendering.
+   - Robust Vision & Event Handling.
    ========================================= */
 
 const AppState = { 
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
    1. محرك الاتصال "الفيراري" (Diamond Engine) 💎🏎️
    ========================================= */
 
-async function fetchRealAI_Stream(userText) {
+async function fetchRealAI_Stream(userText, imageData = null) {
     let botMessageID = `msg-${Date.now()}`;
     let isStreamActive = false;
 
@@ -65,7 +65,8 @@ async function fetchRealAI_Stream(userText) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 prompt: fullPrompt,
-                userProfile: AppState.user 
+                userProfile: AppState.user,
+                image: imageData // إرسال الصورة إذا وجدت
             })
         });
 
@@ -185,6 +186,9 @@ function appendToBotBubble(id, text) {
     // معالجة أولية للنص (تحويل الأسطر الجديدة)
     let processedHTML = text.replace(/\n/g, '<br>');
     
+    // دعم Markdown بسيط (Bold)
+    processedHTML = processedHTML.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
     // الإضافة للشاشة
     contentArea.insertAdjacentHTML('beforeend', processedHTML);
     
@@ -230,7 +234,7 @@ function setupChat() {
         input.value = '';
         input.style.height = 'auto';
 
-        // الرد
+        // الرد (بدون صورة هنا)
         await fetchRealAI_Stream(txt);
     };
 
@@ -248,8 +252,11 @@ function addBubbleToUI(html, sender) {
     div.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
     if (sender === 'bot') div.classList.add('iked-card', 'explanation-section');
     
-    // معالجة الرسائل القديمة
-    div.innerHTML = html.replace(/\n/g, '<br>');
+    // معالجة الرسائل القديمة (Markdown بسيط)
+    let content = html.replace(/\n/g, '<br>');
+    content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    div.innerHTML = content;
 
     const container = document.getElementById('chat-messages');
     container.appendChild(div);
@@ -261,7 +268,7 @@ function addBubbleToUI(html, sender) {
 }
 
 /* =========================================
-   4. باقي الوظائف (Inputs, Auth, etc.) - لم يتم تغييرها
+   4. باقي الوظائف (Inputs, Auth, etc.)
    ========================================= */
 
 function setupInputs() {
@@ -301,7 +308,12 @@ function handleImageUpload(inputElement, type) {
                 const imgHTML = `<img src="${imgData}" style="max-width:100%; border-radius:10px;">`;
                 addBubbleToUI(imgHTML, 'user');
                 saveMessageToSession('Sent an image', 'user');
-                setTimeout(() => { fetchRealAI_Stream("تحليل الصورة..."); }, 500);
+                
+                // 🔥 إرسال الصورة للسيرفر للتحليل (التحديث المهم)
+                setTimeout(() => { 
+                    fetchRealAI_Stream("قم بتحليل هذه الصورة وحل التمرين الموجود فيها:", imgData); 
+                }, 500);
+
             } else if (type === 'profile') {
                 if(AppState.user) { 
                     AppState.user.avatar = imgData; 
