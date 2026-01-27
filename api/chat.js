@@ -1,9 +1,8 @@
 /* =======================================================
-   IKED ENGINE v2026: ROYAL EDITION v3 👑🛡️
-   Features: 
-   1. Smart Buffering (Fixes the "Header Trap")
-   2. Anti-XSS Prompts (Security)
-   3. Enhanced Precision Instructions (Math Accuracy)
+   IKED ENGINE v2026: DIAMOND EDITION 💎
+   Architecture: NDJSON Event Stream (No Header Trap)
+   Features: Real-time Streaming, Tool Injection, Zero Latency
+   Security: Strict SVG Rules
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -16,19 +15,19 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   1. DEFINING THE TOOL 🎨
+   1. DEFINING THE TOOL (High Precision Mode) 🎯
    ======================================================= */
 const renderGraphTool = {
     functionDeclarations: [
         {
             name: "render_math_graph",
-            description: "Generates an SVG graph. Call this ONLY when user asks to visualize.",
+            description: "Generates a vector graphic (SVG) for math concepts. Call ONLY when visualization is requested.",
             parameters: {
                 type: "OBJECT",
                 properties: {
                     svg_code: {
                         type: "STRING",
-                        description: "Clean SVG code. viewBox='-10 -10 20 20'. Y-axis inverted. NO script tags. Use precise coordinates."
+                        description: "PURE SVG code only. No markdown. No <script> tags. Use viewBox='-10 -10 20 20'. Invert Y-axis. Calculate coordinates precisely (e.g. roots, vertex)."
                     }
                 },
                 required: ["svg_code"]
@@ -37,6 +36,9 @@ const renderGraphTool = {
     ]
 };
 
+/* =======================================================
+   2. SAFETY SETTINGS 🛡️
+   ======================================================= */
 const safetySettings = [
     { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
     { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -45,7 +47,7 @@ const safetySettings = [
 ];
 
 /* =======================================================
-   2. STRATEGY & HANDLER
+   3. MODEL STRATEGY 🧠
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
@@ -57,21 +59,34 @@ function selectModelStrategy(query) {
     return ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-lite-latest"]; 
 }
 
+/* =======================================================
+   4. THE HANDLER (NDJSON Streamer) 🌊
+   ======================================================= */
 export default async function handler(req, res) {
+    // إعدادات CORS
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
     }
-    res.setHeader('Content-Type', 'text/event-stream');
+    
+    // 🔥 تغيير نوع المحتوى ليدعم NDJSON (تتابع أحداث JSON)
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
     const { prompt } = req.body;
-    if (!prompt) return res.status(400).write(JSON.stringify({ error: "Input required" }));
+    if (!prompt) {
+        res.write(JSON.stringify({ type: "error", message: "Input required" }) + "\n");
+        res.end(); return;
+    }
 
     const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) { res.write(JSON.stringify({ error: "API Key Error" })); res.end(); return; }
+    if (!apiKey) { 
+        res.write(JSON.stringify({ type: "error", message: "API Key Error" }) + "\n"); 
+        res.end(); return; 
+    }
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
@@ -93,115 +108,86 @@ export default async function handler(req, res) {
                         {
                             role: "user",
                             parts: [{ text: `
-                                You are **IKED**, a Socratic Math Tutor (2 Bac SM).
+                                You are **IKED**, an elite Math Tutor (2 Bac SM).
                                 
-                                🛑 **CRITICAL INSTRUCTIONS:**
-                                1. **Protocol:** If you need to draw, call 'render_math_graph' **IMMEDIATELY** at the start of your response. Do not chat before calling the tool.
-                                2. **Math Accuracy:** When generating SVG, calculate key points (roots, vertex) precisely. Do not guess.
-                                3. **Security:** NEVER include <script> tags or event handlers (onclick) in SVG.
-                                4. **Language:** Arabic Script ONLY (الدارجة).
+                                🛑 **STRICT PROTOCOL:**
+                                1. **Response Format:** You are streaming directly to a frontend.
+                                2. **Visuals:** If you need to draw, call the 'render_math_graph' tool. You can call it at the beginning, middle, or end of your explanation.
+                                3. **Security:** NEVER generate SVG containing <script>, onclick, or onload events.
+                                4. **Math:** Be precise. Calculate intersection points accurately before drawing.
+                                5. **Language:** Moroccan Darija (Arabic Script).
                             ` }]
                         },
-                        { role: "model", parts: [{ text: "مفهوم." }] }
+                        { role: "model", parts: [{ text: "مفهوم. سألتزم بالبروتوكول الجديد." }] }
                     ]
                 });
 
                 const result = await chat.sendMessageStream(prompt);
                 
-                let functionCall = null;
-                let isHeaderSent = false;
-                const DIVIDER = "|||STREAM_DIVIDER|||";
-                
-                // 🛡️ Smart Buffer: نخزن النص قليلاً لنرى هل هناك رسم قادم
-                let textBuffer = "";
-                const BUFFER_LIMIT = 100; // ننتظر حوالي 100 حرف قبل الحكم
-
-                // === LOOP 1: Streaming & Buffering ===
+                // === THE NEW STREAM LOGIC (Event Loop) ===
                 for await (const chunk of result.stream) {
-                    // 1. Check for Tool Call
+                    
+                    // 1. هل هناك استدعاء للأداة؟ (Drawing Event)
                     const calls = chunk.functionCalls();
                     if (calls && calls.length > 0) {
-                        functionCall = calls[0];
-                        break; // وجدنا الرسم! نوقف تجميع النص ونمر للتنفيذ
-                    }
+                        const call = calls[0];
+                        if (call.name === "render_math_graph") {
+                            const svgCode = call.args.svg_code;
+                            
+                            // نرسل حدث الرسم فوراً ومستقلاً
+                            const visualEvent = {
+                                type: "visual",
+                                data: { type: "SVG", code: svgCode },
+                                xp: 20
+                            };
+                            res.write(JSON.stringify(visualEvent) + "\n");
 
-                    // 2. Handle Text
-                    const text = chunk.text();
-                    if (text && !functionCall) {
-                        textBuffer += text;
+                            // نطلب الشرح من الموديل
+                            const result2 = await chat.sendMessageStream([{
+                                functionResponse: {
+                                    name: "render_math_graph",
+                                    response: { status: "success", content: "Graph rendered." }
+                                }
+                            }]);
 
-                        // إذا فات النص الحد المسموح ومازال ماكاين رسم، صافي كنعتبروه نص عادي
-                        if (!isHeaderSent && textBuffer.length > BUFFER_LIMIT) {
-                            res.write(JSON.stringify({ visuals: null }) + DIVIDER);
-                            isHeaderSent = true;
-                            res.write(textBuffer); // نطلقو داكشي اللي حبسنا
-                            textBuffer = "";       // نخويو الكاس
-                        } else if (isHeaderSent) {
-                            // إذا الهيدر ديجا مشى، غير صيفط ديريكت
-                            res.write(text);
+                            // نبث شرح الرسم
+                            for await (const chunk2 of result2.stream) {
+                                const text2 = chunk2.text();
+                                if (text2) {
+                                    res.write(JSON.stringify({ type: "text", content: text2 }) + "\n");
+                                }
+                            }
                         }
-                    }
-                }
-
-                // === LOOP 2: Handling the Result ===
-                if (functionCall) {
-                    // A. نرسل الهيدر مع الرسم
-                    const svgCode = functionCall.args.svg_code;
-                    const visualsJson = JSON.stringify({
-                        visuals: { type: "SVG", code: svgCode },
-                        gamification: { xp: 20 }
-                    });
+                    } 
                     
-                    if (!isHeaderSent) {
-                        res.write(visualsJson + DIVIDER);
-                        isHeaderSent = true;
-                    }
-
-                    // B. نرسل النص اللي كان مخبي (مثلاً: "واخا، ها هو الرسم..")
-                    if (textBuffer.length > 0) {
-                        res.write(textBuffer);
-                    }
-
-                    // C. نطلب الشرح
-                    const result2 = await chat.sendMessageStream([{
-                        functionResponse: {
-                            name: "render_math_graph",
-                            response: { status: "success", content: "Graph rendered. Explain it now." }
+                    // 2. هل هو نص عادي؟ (Text Event)
+                    else {
+                        const text = chunk.text();
+                        if (text) {
+                            // نرسل النص فوراً (Zero Latency)
+                            res.write(JSON.stringify({ type: "text", content: text }) + "\n");
                         }
-                    }]);
-
-                    for await (const chunk2 of result2.stream) {
-                        const text = chunk2.text();
-                        if (text) res.write(text);
-                    }
-
-                } else {
-                    // حالة: كمل الستريم كامل وماكاين لا رسم لا والو، أو النص كان قصير بزاف
-                    if (!isHeaderSent) {
-                        res.write(JSON.stringify({ visuals: null }) + DIVIDER);
-                        isHeaderSent = true;
-                    }
-                    if (textBuffer.length > 0) {
-                        res.write(textBuffer);
                     }
                 }
 
                 success = true;
-                break;
+                break; // نجحنا
 
             } catch (innerError) {
-                // Retry Logic...
-                if (innerError.message.includes("429")) await new Promise(r => setTimeout(r, 1200));
+                if (innerError.message.includes("429")) await new Promise(r => setTimeout(r, 1000));
                 continue;
             }
         }
 
         if (!success) throw new Error("All models failed.");
+        
+        // إشارة نهاية البث (اختياري ولكن جيد للنظافة)
+        res.write(JSON.stringify({ type: "done" }) + "\n");
         res.end();
 
     } catch (error) {
         console.error("Critical Error:", error);
-        res.write(`{"visuals":null}|||STREAM_DIVIDER|||⚠️ عذراً، وقع خطأ بسيط.`);
+        res.write(JSON.stringify({ type: "error", message: "عذراً، وقع خطأ بسيط." }) + "\n");
         res.end();
     }
 }
