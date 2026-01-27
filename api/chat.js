@@ -1,8 +1,7 @@
 /* =======================================================
-   IKED ENGINE v2026: FERRARI EDITION 🏎️
-   Architecture: Native Tools + Safety Bypass + Two-Stage Stream
-   Fixes: "Technical Error" on SVG generation
-   Persona: Socratic Tutor (Arabic Script)
+   IKED ENGINE v2026: THE HYBRID TANK 🛡️🧠
+   Core: Nuclear JSON Extraction (100% Uptime Reliability)
+   Brain: Socratic Tutor + Arabic Script + On-Demand Visuals
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -15,49 +14,50 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   1. DEFINING THE TOOL (THE ARTIST) 🎨
-   ======================================================= */
-const renderGraphTool = {
-    functionDeclarations: [
-        {
-            name: "render_math_graph",
-            description: "Generates an SVG graph. Call this ONLY when the user EXPLICITLY asks to draw/plot/visualize something.",
-            parameters: {
-                type: "OBJECT",
-                properties: {
-                    svg_code: {
-                        type: "STRING",
-                        description: "The raw SVG code. Rules: viewBox='-10 -10 20 20', Invert Y (y_svg = -y_math), simple <path> elements."
-                    }
-                },
-                required: ["svg_code"]
-            }
-        }
-    ]
-};
-
-/* =======================================================
-   2. SAFETY SETTINGS (DISABLE BRAKES) 🔓
-   ======================================================= */
-// ضروري جداً لتجنب "Technical Error" عند توليد أكواد SVG
-const safetySettings = [
-    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-];
-
-/* =======================================================
-   3. MODEL STRATEGY
+   1. STRATEGY: STRICT 2026 LIST
    ======================================================= */
 function selectModelStrategy(query) {
-    // نستخدم أقوى الموديلات للتعامل مع الأدوات
-    return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+    const q = query.toLowerCase();
+    // نكتشف هل طلب المستخدم الرسم صراحة
+    const wantsDrawing = ["رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph"].some(k => q.includes(k));
+
+    if (wantsDrawing) {
+        return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+    }
+    // للأسئلة العادية، نستخدم الموديلات السريعة
+    return ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite-preview-02-05", "gemini-flash-lite-latest"]; 
 }
 
 /* =======================================================
-   4. THE HANDLER (ORCHESTRATOR)
+   2. GENERATION LOGIC (NO TOOLS = NO CRASHES)
    ======================================================= */
+async function generateWithRetry(genAI, modelList, fullPrompt) {
+    for (const modelName of modelList) {
+        try {
+            const model = genAI.getGenerativeModel({ 
+                model: modelName,
+                generationConfig: {
+                    temperature: 0.65, // توازن مثالي بين الذكاء والالتزام
+                    maxOutputTokens: 8192, // مساحة كافية باش الرسم ما يتقطعش
+                    topP: 0.9,
+                }
+            }, { apiVersion: 'v1beta' });
+
+            const result = await model.generateContentStream(fullPrompt);
+            return result.stream;
+
+        } catch (error) {
+            console.warn(`⚠️ [Skip] ${modelName}: ${error.message}`);
+            // انتظار قصير في حالة الضغط
+            if (error.message.includes("429") || error.message.includes("Quota")) {
+                await new Promise(r => setTimeout(r, 1500)); 
+            }
+            continue; 
+        }
+    }
+    throw new Error("System Overload.");
+}
+
 export default async function handler(req, res) {
     // CORS Setup
     const origin = req.headers.origin;
@@ -78,135 +78,97 @@ export default async function handler(req, res) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const models = selectModelStrategy(prompt);
+
+        // 🔥 SYSTEM PROMPT: SOCRATIC BRAIN + ARABIC SCRIPT 🔥
+        const systemInstruction = `
+        You are **IKED**, a smart and interactive Moroccan Math Tutor (2 Bac SM).
+
+        🛑 **STRICT LANGUAGE RULES (ARABIC SCRIPT ONLY):**
+        1. **Script:** Write purely in **ARABIC LETTERS**. 
+           - ❌ NO: "Salam ssi l'batal"
+           - ✅ YES: "أهلاً بالبطل، كيفاش نقدر نعاونك؟"
+        2. **Dialect:** Use **Moroccan Darija** mixed with formal Math Terms.
+           - Keywords: "نعتبر"، "لدينا"، "بما أن"، "إذن"، "لاحظ معايا".
         
-        let streamRequestFailed = true;
+        🧠 **INTERACTIVE METHODOLOGY (SOCRATIC):**
+        1. **Guide, Don't Just Solve:** - If the user asks a question, don't dump the full answer.
+           - Start with a hint or a question: "واش فكرتي تستعمل مبرهنة القيم الوسيطية؟"
+        2. **Concise:** Keep it short and engaging. No long lectures unless asked.
+        3. **On-Demand Visuals:** - Do **NOT** generate JSON/Graphs unless the user explicitly asks ("رسم ليا", "عطيني المبيان").
 
-        for (const modelName of models) {
-            try {
-                const model = genAI.getGenerativeModel({ 
-                    model: modelName,
-                    tools: [renderGraphTool], 
-                    toolConfig: { functionCallingConfig: { mode: "AUTO" } },
-                    safetySettings: safetySettings, // ⚠️ إضافة إعدادات الأمان
-                }, { apiVersion: 'v1beta' });
+        🎨 **FORMATTING:**
+        - **Math:** Use LaTeX ($...$) for ALL math symbols.
+        - **Visuals:** Return JSON Object ONLY when requested.
 
-                const chat = model.startChat({
-                    history: [
-                        {
-                            role: "user",
-                            parts: [{ text: `
-                                You are **IKED**, a Socratic Math Tutor (2 Bac SM).
-                                
-                                🛑 **LANGUAGE RULES:**
-                                1. **Script:** Arabic Script ONLY (الدارجة المغربية بالحرف العربي). No Latin/Arabizi.
-                                2. **Tone:** Warm, encouraging ("يا بطل"), professional.
-                                
-                                🧠 **METHODOLOGY (SOCRATIC):**
-                                1. **Don't Solve Immediately:** Guide the student. Ask probing questions.
-                                2. **Be Concise:** Short, impactful answers. No long lectures.
-                                3. **Math:** Use LaTeX ($$) for everything.
+        🚨 **OUTPUT FORMAT (THE PROTOCOL):**
+        1. JSON Object (Visuals or Null).
+        2. "|||STREAM_DIVIDER|||"
+        3. The Text Response (in Arabic Script).
 
-                                🎨 **VISUALS:**
-                                - If the user asks to **DRAW/PLOT**, call 'render_math_graph'.
-                                - Otherwise, just reply with text.
-                            ` }]
-                        },
-                        {
-                            role: "model",
-                            parts: [{ text: "مرحباً. أنا مستعد باش نعاونك فالرياضيات بطريقة ذكية وتفاعلية." }]
-                        }
-                    ]
-                });
+        --- TEMPLATE ---
+        { "visuals": null }
+        |||STREAM_DIVIDER|||
+        أهلاً تبارك الله عليك! سؤال فالمستوى.
+        قبل ما نبداو، قول ليا: شنو هو الشرط الأساسي باش تكون الدالة متصلة؟
+        `;
 
-                // 🚀 STAGE 1: Send User Prompt & Listen for Intent
-                const result = await chat.sendMessageStream(prompt);
+        const level = userProfile?.stream || "SM";
+        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[User]: ${prompt}`;
+
+        const models = selectModelStrategy(prompt);
+        const stream = await generateWithRetry(genAI, models, fullPrompt);
+
+        // 🔥 LOGIC: NUCLEAR JSON EXTRACTION (The Tank Armor) 🔥
+        let buffer = "";
+        let isHeaderSent = false;
+        const DIVIDER = "|||STREAM_DIVIDER|||";
+
+        for await (const chunk of stream) {
+            const chunkText = chunk.text();
+            
+            if (!isHeaderSent) {
+                buffer += chunkText;
                 
-                let toolCall = null;
-                let hasSentHeader = false;
-                const DIVIDER = "|||STREAM_DIVIDER|||";
+                if (buffer.includes(DIVIDER)) {
+                    const parts = buffer.split(DIVIDER);
+                    const rawBuffer = parts[0]; 
+                    const content = parts.slice(1).join(DIVIDER);
 
-                // نقرأ الستريم الأول: هل هو رسم أم نص؟
-                for await (const chunk of result.stream) {
-                    // فحص وجود استدعاء دالة
-                    const calls = chunk.functionCalls();
-                    if (calls && calls.length > 0) {
-                        toolCall = calls[0];
-                        // 🛑 توقف! وجدنا دالة. نخرج من الحلقة فوراً لمعالجتها.
-                        // هذا يمنع تضارب الستريم
-                        break; 
-                    }
+                    try {
+                        // 🛠️ الجراحة الدقيقة لاستخراج JSON
+                        const firstBrace = rawBuffer.indexOf('{');
+                        const lastBrace = rawBuffer.lastIndexOf('}');
 
-                    // إذا لم تكن دالة، فهو نص عادي. نرسله فوراً.
-                    if (!toolCall) {
-                        const text = chunk.text();
-                        if (text) {
-                            if (!hasSentHeader) {
-                                res.write(JSON.stringify({ visuals: null }) + DIVIDER);
-                                hasSentHeader = true;
-                            }
-                            res.write(text);
+                        if (firstBrace !== -1 && lastBrace !== -1) {
+                            let cleanJson = rawBuffer.substring(firstBrace, lastBrace + 1);
+                            JSON.parse(cleanJson); // التحقق من الصحة
+                            res.write(cleanJson + DIVIDER + content);
+                        } else {
+                            // لم يتم العثور على JSON، نفترض null
+                            res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                         }
+                    } catch (e) {
+                        // في حالة الفشل، نخفي الكود ونظهر النص فقط
+                        res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
                     }
+                    isHeaderSent = true;
+                    buffer = "";
                 }
-
-                // 🚀 STAGE 2: Handle Tool Execution (If any)
-                if (toolCall) {
-                    // 1. استخراج كود SVG
-                    const svgCode = toolCall.args.svg_code;
-
-                    // 2. إرسال الهيدر للعميل (الرسم وصل!)
-                    const visualsJson = JSON.stringify({
-                        visuals: {
-                            type: "SVG",
-                            code: svgCode
-                        },
-                        gamification: { xp: 20 }
-                    });
-                    
-                    if (!hasSentHeader) {
-                        res.write(visualsJson + DIVIDER);
-                        hasSentHeader = true;
-                    }
-
-                    // 3. إرجاع النتيجة للموديل ليقوم بالشرح
-                    const result2 = await chat.sendMessageStream([
-                        {
-                            functionResponse: {
-                                name: "render_math_graph",
-                                response: { status: "success", content: "Graph rendered successfully. Now explain it simply in Darija." }
-                            }
-                        }
-                    ]);
-
-                    // 4. بث الشرح
-                    for await (const chunk2 of result2.stream) {
-                        const text2 = chunk2.text();
-                        if (text2) res.write(text2);
-                    }
-                } else if (!hasSentHeader) {
-                    // حالة نادرة: رد فارغ
-                    res.write(JSON.stringify({ visuals: null }) + DIVIDER);
-                }
-
-                streamRequestFailed = false;
-                break; // نجحنا
-
-            } catch (innerError) {
-                console.warn(`⚠️ [Model Fail] ${modelName}:`, innerError.message);
-                // محاولة مع الموديل التالي
+            } else {
+                res.write(chunkText);
             }
         }
-
-        if (streamRequestFailed) {
-            throw new Error("All models failed.");
+        
+        // Final flush
+        if (!isHeaderSent && buffer) {
+             res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
         }
-
         res.end();
 
     } catch (error) {
-        console.error("Critical Handler Error:", error);
-        res.write(`{"visuals":null}|||STREAM_DIVIDER|||⚠️ عذراً، كاين ضغط على السيرفر. حاول مرة أخرى.`);
+        console.error("Handler Error:", error);
+        // Fallback message in Arabic Script
+        res.write(`{"visuals":null}|||STREAM_DIVIDER|||⚠️ عذراً يا بطل، وقع واحد الخطأ تقني بسيط. عاود سولني عافاك.`);
         res.end();
     }
 }
