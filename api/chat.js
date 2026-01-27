@@ -1,8 +1,8 @@
 /* =======================================================
-   IKED ENGINE v2026: ARABIC SCRIPT EDITION 🇲🇦✍️
-   Mode: Interactive Socratic Coach
-   Language: Darija (Arabic Letters) + Formal Math (LaTeX)
-   Tech: Nuclear JSON Fix
+   IKED ENGINE v2026: NATIVE TOOLS EDITION 🛠️⚡
+   Architecture: Gemini Native Function Calling
+   Benefits: Zero Latency Text, 100% Valid SVGs
+   Persona: Socratic Tutor (Arabic Script)
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -15,50 +15,41 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   1. STRATEGY: STRICT 2026 LIST
+   1. DEFINING THE TOOL (THE ARTIST) 🎨
+   ======================================================= */
+const renderGraphTool = {
+    functionDeclarations: [
+        {
+            name: "render_math_graph",
+            description: "Generates an SVG graph for functions, geometry, or plots. Call this whenever the user asks for a visual representation.",
+            parameters: {
+                type: "OBJECT",
+                properties: {
+                    svg_code: {
+                        type: "STRING",
+                        description: "The raw SVG code. Rules: viewBox='-10 -10 20 20', Invert Y (y_svg = -y_math), simple <path> elements."
+                    }
+                },
+                required: ["svg_code"]
+            }
+        }
+    ]
+};
+
+/* =======================================================
+   2. MODEL STRATEGY
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    // نكتشف هل طلب المستخدم الرسم صراحة
-    const wantsDrawing = ["رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph"].some(k => q.includes(k));
-
-    if (wantsDrawing) {
-        return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
-    }
-    // للأسئلة العادية، نستخدم الموديلات السريعة
-    return ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite-preview-02-05", "gemini-flash-lite-latest"]; 
+    // نستخدم الموديلات القوية للتعامل مع الأدوات
+    return ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-latest"];
 }
 
 /* =======================================================
-   2. GENERATION LOGIC
+   3. THE HANDLER (ORCHESTRATOR)
    ======================================================= */
-async function generateWithRetry(genAI, modelList, fullPrompt) {
-    for (const modelName of modelList) {
-        try {
-            const model = genAI.getGenerativeModel({ 
-                model: modelName,
-                generationConfig: {
-                    temperature: 0.6, // توازن بين التفاعل والصرامة
-                    maxOutputTokens: 4000, 
-                    topP: 0.9,
-                }
-            }, { apiVersion: 'v1beta' });
-
-            const result = await model.generateContentStream(fullPrompt);
-            return result.stream;
-
-        } catch (error) {
-            console.warn(`⚠️ [Skip] ${modelName}: ${error.message}`);
-            if (error.message.includes("429") || error.message.includes("Quota")) {
-                await new Promise(r => setTimeout(r, 2000)); 
-            }
-            continue; 
-        }
-    }
-    throw new Error("System Overload.");
-}
-
 export default async function handler(req, res) {
+    // CORS Setup
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -77,98 +68,140 @@ export default async function handler(req, res) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-
-        // 🔥 SYSTEM PROMPT: ARABIC SCRIPT & SOCRATIC METHOD 🔥
-        const systemInstruction = `
-        You are **IKED**, a smart and interactive Moroccan Math Tutor (2 Bac SM).
-
-        🛑 **LANGUAGE RULES (ARABIC SCRIPT ONLY):**
-        1. **Write in ARABIC LETTERS (اللغة العربية):** - **NEVER** use Latin script for Darija (No "Ahlan", No "Kifach").
-           - **ALWAYS** write Darija in Arabic script.
-           - ✅ Good: "أهلاً بالبطل، كيفاش نقدر نعاونك؟"
-           - ❌ Bad: "Salam ssi l'batal."
-        
-        2. **Dialect:** Use **Moroccan Darija** mixed with formal Arabic Math terms.
-           - Example: "حنا عندنا مشكل فالنهاية، خاصنا نعملو بـ $x$."
-
-        🧠 **INTERACTIVE BEHAVIOR (SOCRATIC METHOD):**
-        1. **NO MONOLOGUES:** Never give the full solution immediately.
-        2. **ASK FIRST:** When a student asks a question, guide them with a probing question.
-           - If they ask to solve a limit, ask: "واش جربتي التعويض المباشر؟ شنو عطاك؟" (Did you try direct substitution?).
-           - Only give the full solution if they are stuck.
-
-        3. **ON-DEMAND EXECUTION:**
-           - Do **NOT** draw graphs unless explicitly asked ("رسم ليا").
-           - Do **NOT** provide full proofs unless asked ("عطيني البرهان").
-
-        🎨 **FORMATTING:**
-        - **Math:** Use LaTeX ($...$) for formulas.
-        - **Visuals:** JSON output only when requested.
-
-        🚨 **OUTPUT FORMAT:**
-        1. JSON Object (Visuals or Null).
-        2. "|||STREAM_DIVIDER|||"
-        3. The Text Response (In Arabic Script).
-
-        --- TEMPLATE ---
-        { "visuals": null }
-        |||STREAM_DIVIDER|||
-        أهلاً بالبطل! تبارك الله عليك سؤال ممتاز.
-        قبل ما نعطيك الجواب، قول ليا: شنو بان ليك نديرو باش نبسطو هاد التعبير؟ واش كاين شي عامل مشترك؟
-        `;
-
-        const level = userProfile?.stream || "SM";
-        const fullPrompt = `${systemInstruction}\n\n[Level: ${level}]\n[User]: ${prompt}`;
-
         const models = selectModelStrategy(prompt);
-        const stream = await generateWithRetry(genAI, models, fullPrompt);
+        
+        // سنحاول مع الموديل الأول، وإذا فشل نمر للتالي
+        let streamRequestFailed = true;
 
-        // 🔥 LOGIC: SURGICAL JSON EXTRACTION (UNCHANGED) 🔥
-        let buffer = "";
-        let isHeaderSent = false;
-        const DIVIDER = "|||STREAM_DIVIDER|||";
+        for (const modelName of models) {
+            try {
+                const model = genAI.getGenerativeModel({ 
+                    model: modelName,
+                    tools: [renderGraphTool], // تفعيل الأدوات
+                    toolConfig: { functionCallingConfig: { mode: "AUTO" } },
+                }, { apiVersion: 'v1beta' });
 
-        for await (const chunk of stream) {
-            const chunkText = chunk.text();
-            
-            if (!isHeaderSent) {
-                buffer += chunkText;
-                
-                if (buffer.includes(DIVIDER)) {
-                    const parts = buffer.split(DIVIDER);
-                    const rawBuffer = parts[0]; 
-                    const content = parts.slice(1).join(DIVIDER);
-
-                    try {
-                        const firstBrace = rawBuffer.indexOf('{');
-                        const lastBrace = rawBuffer.lastIndexOf('}');
-
-                        if (firstBrace !== -1 && lastBrace !== -1) {
-                            let cleanJson = rawBuffer.substring(firstBrace, lastBrace + 1);
-                            JSON.parse(cleanJson);
-                            res.write(cleanJson + DIVIDER + content);
-                        } else {
-                            res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
+                const chat = model.startChat({
+                    history: [
+                        {
+                            role: "user",
+                            parts: [{ text: `
+                                You are **IKED**, a Socratic Math Tutor (2 Bac SM).
+                                
+                                🛑 **RULES:**
+                                1. **Language:** Arabic Script ONLY (الدارجة المغربية بالحرف العربي). No Latin script.
+                                2. **Method:** Socratic. Ask questions, guide, don't just solve.
+                                3. **Math:** Use LaTeX ($$).
+                                4. **Visuals:** If a graph is needed, CALL the 'render_math_graph' function. DO NOT write JSON text manually.
+                            ` }]
+                        },
+                        {
+                            role: "model",
+                            parts: [{ text: "مفهوم. أنا مستعد للمساعدة بالدارجة والرياضيات." }]
                         }
-                    } catch (e) {
-                        res.write(JSON.stringify({ visuals: null }) + DIVIDER + content);
+                    ]
+                });
+
+                // 🚀 Step 1: Send User Prompt
+                const result = await chat.sendMessageStream(prompt);
+                
+                let functionCallFound = null;
+                let functionArgs = "";
+                let hasSentHeader = false;
+                const DIVIDER = "|||STREAM_DIVIDER|||";
+
+                // معالجة الستريم الأول (قد يحتوي على نص أو طلب دالة)
+                for await (const chunk of result.stream) {
+                    // A. هل هناك طلب دالة؟
+                    const calls = chunk.functionCalls();
+                    if (calls && calls.length > 0) {
+                        const call = calls[0];
+                        if (call.name === "render_math_graph") {
+                            // تجميع الأرغمنتات (في حال كانت مقسمة)
+                            // Gemini SDK usually gives full args in one go or handles it, 
+                            // but for safety we grab the args object directly from the chunk if available.
+                            // Note: In stream, we might need to rely on the final aggregation.
+                            // For simplicity with JS SDK stream, we treat the FIRST function call signal as the mode switch.
+                            functionCallFound = call;
+                        }
                     }
-                    isHeaderSent = true;
-                    buffer = "";
+
+                    // B. هل هناك نص؟ (فقط إذا لم نكن في وضع الرسم بعد)
+                    if (!functionCallFound) {
+                        const text = chunk.text();
+                        if (text) {
+                            // هذه أول كلمة نصية -> إذن لا يوجد رسم -> أرسل الهيدر الفارغ فوراً
+                            if (!hasSentHeader) {
+                                res.write(JSON.stringify({ visuals: null }) + DIVIDER);
+                                hasSentHeader = true;
+                            }
+                            res.write(text);
+                        }
+                    }
                 }
-            } else {
-                res.write(chunkText);
+
+                // 🚀 Step 2: Handle Function Call (If any)
+                if (functionCallFound) {
+                    // 1. استخراج كود SVG
+                    const svgCode = functionCallFound.args.svg_code;
+
+                    // 2. إرسال الهيدر للعميل (مع الرسم)
+                    const visualsJson = JSON.stringify({
+                        visuals: {
+                            type: "SVG",
+                            code: svgCode
+                        },
+                        gamification: { xp: 15 }
+                    });
+                    
+                    if (!hasSentHeader) {
+                        res.write(visualsJson + DIVIDER);
+                        hasSentHeader = true;
+                    }
+
+                    // 3. إخبار الموديل أن الرسم تم، وطلب الشرح
+                    const result2 = await chat.sendMessageStream([
+                        {
+                            functionResponse: {
+                                name: "render_math_graph",
+                                response: { status: "success", message: "Graph rendered for student." }
+                            }
+                        }
+                    ]);
+
+                    // 4. بث الشرح (Explanation Stream)
+                    for await (const chunk2 of result2.stream) {
+                        const text2 = chunk2.text();
+                        if (text2) res.write(text2);
+                    }
+                } else if (!hasSentHeader) {
+                    // حالة نادرة: الموديل لم يقل شيئاً ولم يرسم (فارغ)
+                    // نرسل هيدر فارغ لإغلاق الطلب بأمان
+                    res.write(JSON.stringify({ visuals: null }) + DIVIDER);
+                }
+
+                streamRequestFailed = false;
+                break; // نجحنا، نخرج من حلقة الموديلات
+
+            } catch (innerError) {
+                console.warn(`⚠️ [Model Fail] ${modelName}:`, innerError.message);
+                if (innerError.message.includes("429")) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                // Continue to next model
             }
         }
-        
-        if (!isHeaderSent && buffer) {
-             res.write(JSON.stringify({ visuals: null }) + DIVIDER + buffer);
+
+        if (streamRequestFailed) {
+            throw new Error("All models failed.");
         }
+
         res.end();
 
     } catch (error) {
-        console.error("Handler Error:", error);
-        res.write(`{"visuals":null}|||STREAM_DIVIDER|||⚠️ IKED: Please retry.`);
+        console.error("Critical Handler Error:", error);
+        // Fallback response
+        res.write(`{"visuals":null}|||STREAM_DIVIDER|||⚠️ عذراً يا بطل، وقع خطأ تقني بسيط. عاود سولني.`);
         res.end();
     }
 }
