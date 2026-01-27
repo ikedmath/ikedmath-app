@@ -1,8 +1,9 @@
 /* =======================================================
-   IKED ENGINE v2026: THE ROYAL EDITION 👑
-   Technology: Native Function Calling (Tools)
-   Models: Verified Official List (2.5 Flash / 2.0 Flash)
-   Features: Zero Latency, 100% Valid SVGs, Socratic Brain
+   IKED ENGINE v2026: ROYAL EDITION v3 👑🛡️
+   Features: 
+   1. Smart Buffering (Fixes the "Header Trap")
+   2. Anti-XSS Prompts (Security)
+   3. Enhanced Precision Instructions (Math Accuracy)
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -15,19 +16,19 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   1. DEFINING THE TOOL (THE ARTIST) 🎨
+   1. DEFINING THE TOOL 🎨
    ======================================================= */
 const renderGraphTool = {
     functionDeclarations: [
         {
             name: "render_math_graph",
-            description: "Generates an SVG graph. Call this ONLY when the user explicitly asks to draw, plot, or visualize a function/geometry.",
+            description: "Generates an SVG graph. Call this ONLY when user asks to visualize.",
             parameters: {
                 type: "OBJECT",
                 properties: {
                     svg_code: {
                         type: "STRING",
-                        description: "Raw SVG code. Requirements: viewBox='-10 -10 20 20', Invert Y axis (y_svg = -y_math), simple <path> elements, stroke-width='0.15'. Do NOT include markdown."
+                        description: "Clean SVG code. viewBox='-10 -10 20 20'. Y-axis inverted. NO script tags. Use precise coordinates."
                     }
                 },
                 required: ["svg_code"]
@@ -36,9 +37,6 @@ const renderGraphTool = {
     ]
 };
 
-/* =======================================================
-   2. SAFETY SETTINGS (NO BRAKES) 🔓
-   ======================================================= */
 const safetySettings = [
     { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
     { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -47,35 +45,19 @@ const safetySettings = [
 ];
 
 /* =======================================================
-   3. MODEL STRATEGY (BASED ON OFFICIAL LIST) 🧠
+   2. STRATEGY & HANDLER
    ======================================================= */
 function selectModelStrategy(query) {
     const q = query.toLowerCase();
-    const visualKeywords = ["رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph", "دالة", "function", "courbe"];
-    const wantsDrawing = visualKeywords.some(k => q.includes(k));
-
-    if (wantsDrawing) {
-        // 🔥 القوة الضاربة للرسم (من لائحتك الرسمية)
-        return [
-            "gemini-2.5-flash",                   // (Top Tier) الأذكى
-            "gemini-2.0-flash",                   // (Stable) القوي
-            "gemini-2.0-flash-lite-preview-02-05" // (Fast Backup)
-        ];
-    }
+    const visualKeywords = ["رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph", "دالة"];
     
-    // ⚡ السرعة القصوى للنصوص
-    return [
-        "gemini-2.5-flash-lite",              // (Specific Lite Model from list)
-        "gemini-2.5-flash",                   // (Smart Fallback)
-        "gemini-flash-lite-latest"            // (Ultra Fast Fallback)
-    ]; 
+    if (visualKeywords.some(k => q.includes(k))) {
+        return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05"];
+    }
+    return ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-lite-latest"]; 
 }
 
-/* =======================================================
-   4. THE HANDLER (THE ORCHESTRATOR) ⚙️
-   ======================================================= */
 export default async function handler(req, res) {
-    // إعدادات الشبكة (CORS & Headers)
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -85,8 +67,7 @@ export default async function handler(req, res) {
     res.setHeader('Connection', 'keep-alive');
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-
-    const { prompt, userProfile } = req.body;
+    const { prompt } = req.body;
     if (!prompt) return res.status(400).write(JSON.stringify({ error: "Input required" }));
 
     const apiKey = process.env.GOOGLE_API_KEY;
@@ -95,21 +76,17 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
         const models = selectModelStrategy(prompt);
-        
         let success = false;
-        let lastError = "";
 
-        // 🔥 الدوران على الموديلات (Fallback Loop)
         for (const modelName of models) {
             try {
-                // إعداد الموديل
                 const model = genAI.getGenerativeModel({ 
                     model: modelName,
                     tools: [renderGraphTool],
                     toolConfig: { functionCallingConfig: { mode: "AUTO" } },
                     safetySettings: safetySettings,
                     generationConfig: { temperature: 0.6 }
-                }, { apiVersion: 'v1beta' }); // v1beta ضروري لـ 2.5 و 2.0
+                }, { apiVersion: 'v1beta' });
 
                 const chat = model.startChat({
                     history: [
@@ -119,54 +96,57 @@ export default async function handler(req, res) {
                                 You are **IKED**, a Socratic Math Tutor (2 Bac SM).
                                 
                                 🛑 **CRITICAL INSTRUCTIONS:**
-                                1. **Language:** Arabic Script ONLY (الدارجة بالحرف العربي). No Latin/Arabizi.
-                                2. **Method:** Socratic. Guide the student, don't just solve. Ask questions first.
-                                3. **Math:** Use LaTeX ($$) for everything.
-                                4. **Visuals:** - IF user asks to DRAW -> Call 'render_math_graph' tool.
-                                   - IF text only -> Do NOT call the function.
+                                1. **Protocol:** If you need to draw, call 'render_math_graph' **IMMEDIATELY** at the start of your response. Do not chat before calling the tool.
+                                2. **Math Accuracy:** When generating SVG, calculate key points (roots, vertex) precisely. Do not guess.
+                                3. **Security:** NEVER include <script> tags or event handlers (onclick) in SVG.
+                                4. **Language:** Arabic Script ONLY (الدارجة).
                             ` }]
                         },
-                        {
-                            role: "model",
-                            parts: [{ text: "مفهوم. أنا مستعد للمساعدة." }]
-                        }
+                        { role: "model", parts: [{ text: "مفهوم." }] }
                     ]
                 });
 
-                // إرسال الطلب (Start Streaming)
                 const result = await chat.sendMessageStream(prompt);
                 
                 let functionCall = null;
                 let isHeaderSent = false;
                 const DIVIDER = "|||STREAM_DIVIDER|||";
+                
+                // 🛡️ Smart Buffer: نخزن النص قليلاً لنرى هل هناك رسم قادم
+                let textBuffer = "";
+                const BUFFER_LIMIT = 100; // ننتظر حوالي 100 حرف قبل الحكم
 
-                // === LOOP 1: استقبال البث الأول ===
+                // === LOOP 1: Streaming & Buffering ===
                 for await (const chunk of result.stream) {
-                    // A. فحص هل هناك استدعاء للأداة؟
+                    // 1. Check for Tool Call
                     const calls = chunk.functionCalls();
                     if (calls && calls.length > 0) {
                         functionCall = calls[0];
-                        break; // نتوقف عن البث النصي فوراً لنعالج الرسم
+                        break; // وجدنا الرسم! نوقف تجميع النص ونمر للتنفيذ
                     }
 
-                    // B. إذا لم يكن هناك دالة، فهو نص عادي
-                    // نرسل الهيدر الفارغ فوراً (Zero Latency)
+                    // 2. Handle Text
                     const text = chunk.text();
                     if (text && !functionCall) {
-                        if (!isHeaderSent) {
+                        textBuffer += text;
+
+                        // إذا فات النص الحد المسموح ومازال ماكاين رسم، صافي كنعتبروه نص عادي
+                        if (!isHeaderSent && textBuffer.length > BUFFER_LIMIT) {
                             res.write(JSON.stringify({ visuals: null }) + DIVIDER);
                             isHeaderSent = true;
+                            res.write(textBuffer); // نطلقو داكشي اللي حبسنا
+                            textBuffer = "";       // نخويو الكاس
+                        } else if (isHeaderSent) {
+                            // إذا الهيدر ديجا مشى، غير صيفط ديريكت
+                            res.write(text);
                         }
-                        res.write(text);
                     }
                 }
 
-                // === LOOP 2: معالجة الرسم (إذا طلبه الموديل) ===
+                // === LOOP 2: Handling the Result ===
                 if (functionCall) {
-                    // 1. استخراج كود SVG
+                    // A. نرسل الهيدر مع الرسم
                     const svgCode = functionCall.args.svg_code;
-
-                    // 2. إرسال الهيدر مع الرسم (برمجياً - مضمون 100%)
                     const visualsJson = JSON.stringify({
                         visuals: { type: "SVG", code: svgCode },
                         gamification: { xp: 20 }
@@ -177,52 +157,51 @@ export default async function handler(req, res) {
                         isHeaderSent = true;
                     }
 
-                    // 3. نرسل نتيجة الرسم للموديل ونطلب الشرح
-                    const result2 = await chat.sendMessageStream([
-                        {
-                            functionResponse: {
-                                name: "render_math_graph",
-                                response: { status: "success", content: "Graph displayed successfully. Now explain it simply in Darija." }
-                            }
-                        }
-                    ]);
+                    // B. نرسل النص اللي كان مخبي (مثلاً: "واخا، ها هو الرسم..")
+                    if (textBuffer.length > 0) {
+                        res.write(textBuffer);
+                    }
 
-                    // 4. بث الشرح
+                    // C. نطلب الشرح
+                    const result2 = await chat.sendMessageStream([{
+                        functionResponse: {
+                            name: "render_math_graph",
+                            response: { status: "success", content: "Graph rendered. Explain it now." }
+                        }
+                    }]);
+
                     for await (const chunk2 of result2.stream) {
                         const text = chunk2.text();
                         if (text) res.write(text);
                     }
-                } else if (!isHeaderSent) {
-                    // حالة نادرة (رد فارغ)
-                    res.write(JSON.stringify({ visuals: null }) + DIVIDER);
+
+                } else {
+                    // حالة: كمل الستريم كامل وماكاين لا رسم لا والو، أو النص كان قصير بزاف
+                    if (!isHeaderSent) {
+                        res.write(JSON.stringify({ visuals: null }) + DIVIDER);
+                        isHeaderSent = true;
+                    }
+                    if (textBuffer.length > 0) {
+                        res.write(textBuffer);
+                    }
                 }
 
                 success = true;
-                break; // 🛑 نجحنا! نخرج من حلقة الموديلات
+                break;
 
             } catch (innerError) {
-                console.warn(`⚠️ [Skip] ${modelName}: ${innerError.message}`);
-                lastError = innerError.message;
-                
-                // انتظار خفيف إذا كان ضغط (Quota)
-                if (innerError.message.includes("429")) {
-                    await new Promise(r => setTimeout(r, 1200));
-                }
+                // Retry Logic...
+                if (innerError.message.includes("429")) await new Promise(r => setTimeout(r, 1200));
                 continue;
             }
         }
 
-        if (!success) {
-            throw new Error(`All models failed. Last error: ${lastError}`);
-        }
-
+        if (!success) throw new Error("All models failed.");
         res.end();
 
     } catch (error) {
         console.error("Critical Error:", error);
-        // رسالة fallback لطيفة
-        res.write(`{"visuals":null}|||STREAM_DIVIDER|||⚠️ عذراً يا بطل، السيرفر عامر شوية. عاود سولني دابا.`);
+        res.write(`{"visuals":null}|||STREAM_DIVIDER|||⚠️ عذراً، وقع خطأ بسيط.`);
         res.end();
     }
 }
-
