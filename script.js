@@ -23,7 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Splash Screen Logic
     setTimeout(() => {
-        document.getElementById('splash-screen').classList.add('hidden');
+        const splash = document.getElementById('splash-screen');
+        if(splash) splash.classList.add('hidden');
+        
         if (AppState.isLoggedIn) {
             document.getElementById('app-screen').classList.remove('hidden');
             updateDashboardUI();
@@ -42,12 +44,13 @@ async function fetchRealAI_Stream(userText, imageData = null) {
     let isStreamActive = false;
 
     try {
-        // 1. تحضير السياق
+        // 1. تحضير السياق (Context)
         const sessions = getSessions();
         const currentSession = sessions.find(s => s.id === AppState.currentSessionId);
         let contextHistory = "";
         
         if (currentSession && currentSession.messages.length > 0) {
+            // نأخذ آخر 4 رسائل فقط لتوفير الذاكرة
             contextHistory = currentSession.messages.slice(-4).map(msg => 
                 `${msg.sender === 'user' ? 'Student' : 'Tutor'}: ${msg.raw_content || '...'}`
             ).join('\n');
@@ -55,27 +58,27 @@ async function fetchRealAI_Stream(userText, imageData = null) {
 
         const fullPrompt = `[HISTORY]:\n${contextHistory}\n\n[USER]: ${userText}`;
 
-        // 2. إنشاء فقاعة الجواب
+        // 2. إنشاء فقاعة الجواب فارغة
         createEmptyBotBubble(botMessageID);
         isStreamActive = true;
 
-        // 3. الاتصال (مع طلب NDJSON)
+        // 3. الاتصال بالسيرفر
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 prompt: fullPrompt,
                 userProfile: AppState.user,
-                image: imageData // إرسال الصورة إذا وجدت
+                image: imageData // نرسل الصورة إذا كانت موجودة
             })
         });
 
         if (!response.ok) throw new Error(`Server Error: ${response.status}`);
 
-        // 4. قراءة التدفق (NDJSON Stream Loop)
+        // 4. قراءة التدفق (NDJSON Stream Loop) - هنا كان المشكل وتم حله
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = ""; // مخزن مؤقت للأسطر المقطوعة
+        let buffer = ""; // مخزن مؤقت للبيانات المقطوعة
         let fullResponseText = "";
 
         while (true) {
@@ -85,59 +88,65 @@ async function fetchRealAI_Stream(userText, imageData = null) {
             const chunk = decoder.decode(value, { stream: true });
             buffer += chunk;
             
-            // تقسيم البيانات إلى أسطر
+            // تقسيم البيانات إلى أسطر (كل سطر هو حدث JSON)
             const lines = buffer.split("\n");
             
-            // نحتفظ بآخر جزء لأنه قد يكون غير مكتمل ونعالجه في الدورة التالية
+            // نحتفظ بآخر جزء لأنه قد يكون غير مكتمل ونعالجه في الدورة القادمة
             buffer = lines.pop(); 
 
             for (const line of lines) {
                 if (line.trim() === "") continue;
 
                 try {
+                    // 🔥 هنا السحر: تحويل النص إلى كائن JSON
                     const event = JSON.parse(line);
 
                     // --- معالجة الأحداث (Event Handling) ---
                     
                     if (event.type === "text") {
-                        // 1. حدث نصي
+                        // 1. حدث نصي: نعرض النص وننسقه
                         appendToBotBubble(botMessageID, event.content);
                         fullResponseText += event.content;
                     } 
                     else if (event.type === "visual") {
-                        // 2. حدث مرئي (رسم)
+                        // 2. حدث مرئي (رسم): نعرض SVG
                         renderVisualEvent(event, botMessageID);
-                        // معالجة الـ XP إذا وجد
+                        
+                        // معالجة نقاط الخبرة (XP)
                         if (event.gamification && event.gamification.xp) {
                             addXP(event.gamification.xp);
                         }
                     }
                     else if (event.type === "error") {
                         // 3. حدث خطأ من السيرفر
-                        appendToBotBubble(botMessageID, `<br><span style="color:red">⚠️ ${event.message}</span>`);
+                        appendToBotBubble(botMessageID, `<br><span style="color:#ef4444">⚠️ ${event.message}</span>`);
                     }
 
                 } catch (e) {
-                    console.error("JSON Parse Error (Line skipped):", e, line);
+                    console.warn("JSON Parse Error (skipping line):", line);
                 }
             }
         }
 
-        // 5. إنهاء وحفظ
+        // 5. إنهاء وحفظ الرسالة في التاريخ
         saveMessageToSession(fullResponseText, 'bot');
-        document.getElementById(botMessageID).classList.remove('streaming-active');
-        
-        // 🔥 RENDER FINAL MATH: تأكيد أخير على المعادلات
         const finalBubble = document.getElementById(botMessageID);
-        if(window.MathJax) window.MathJax.typesetPromise([finalBubble]).catch(()=>{});
+        if(finalBubble) finalBubble.classList.remove('streaming-active');
+        
+        // 🔥 لمسة نهائية: إعادة تفعيل MathJax للتأكد من جمالية الرياضيات
+        if(window.MathJax && finalBubble) {
+            window.MathJax.typesetPromise([finalBubble]).catch(()=>{});
+        }
 
     } catch (error) {
         console.error("Stream Error:", error);
         const bubble = document.getElementById(botMessageID);
-        if (bubble && bubble.innerText.trim() === "") {
-            bubble.innerHTML = `<div style="color:#ef4444; padding:10px;">⚠️ ${error.message}</div>`;
+        if (bubble) {
+            if (bubble.innerText.trim() === "") {
+                bubble.innerHTML = `<div style="color:#ef4444; padding:10px;">⚠️ تعذر الاتصال: ${error.message}</div>`;
+            }
+            bubble.classList.remove('streaming-active');
         }
-        if (isStreamActive) document.getElementById(botMessageID)?.classList.remove('streaming-active');
     }
 }
 
@@ -159,7 +168,7 @@ function createEmptyBotBubble(id) {
     scrollToBottom();
 }
 
-// دالة جديدة لمعالجة الرسم بناءً على النظام الجديد
+// دالة عرض الرسم (SVG)
 function renderVisualEvent(event, msgId) {
     const container = document.getElementById(msgId);
     if (!container) return;
@@ -172,29 +181,31 @@ function renderVisualEvent(event, msgId) {
             ${event.data.code}
             <div class="visual-caption">🔍 توضيح هندسي</div>
         `;
-        // إضافته في مكانه المخصص
-        container.querySelector('.visual-wrapper').appendChild(visDiv);
+        // إضافته في مكانه المخصص (فوق النص)
+        const wrapper = container.querySelector('.visual-wrapper');
+        if(wrapper) wrapper.appendChild(visDiv);
     }
 }
 
+// دالة إضافة النص (مع التنسيق والرياضيات)
 function appendToBotBubble(id, text) {
     const bubble = document.getElementById(id);
     if (!bubble) return;
     
     const contentArea = bubble.querySelector('.content-area');
     
-    // معالجة أولية للنص (تحويل الأسطر الجديدة)
+    // 1. تحويل الأسطر الجديدة إلى <br>
     let processedHTML = text.replace(/\n/g, '<br>');
     
-    // دعم Markdown بسيط (Bold)
+    // 2. تحويل Bold Markdown (**text**) إلى <strong>text</strong>
     processedHTML = processedHTML.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-    // الإضافة للشاشة
+    // 3. الإضافة للشاشة
     contentArea.insertAdjacentHTML('beforeend', processedHTML);
     
-    // 🔥 Trigger MathJax (Live Rendering)
+    // 4. 🔥 تفعيل MathJax فورياً (Live Rendering)
     if (window.MathJax) {
-        window.MathJax.typesetPromise([contentArea]).catch(err => {}); // Silent catch
+        window.MathJax.typesetPromise([contentArea]).catch(err => {}); // Silent catch لتجنب الأخطاء أثناء الكتابة السريعة
     }
 
     scrollToBottom();
@@ -202,7 +213,7 @@ function appendToBotBubble(id, text) {
 
 function scrollToBottom() {
     const container = document.getElementById('chat-messages');
-    container.scrollTop = container.scrollHeight;
+    if(container) container.scrollTop = container.scrollHeight;
 }
 
 function showBadgeNotification(badgeName) {
@@ -234,7 +245,7 @@ function setupChat() {
         input.value = '';
         input.style.height = 'auto';
 
-        // الرد (بدون صورة هنا)
+        // الرد
         await fetchRealAI_Stream(txt);
     };
 
@@ -252,7 +263,7 @@ function addBubbleToUI(html, sender) {
     div.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
     if (sender === 'bot') div.classList.add('iked-card', 'explanation-section');
     
-    // معالجة الرسائل القديمة (Markdown بسيط)
+    // تنسيق الرسائل القديمة عند استرجاعها من الذاكرة
     let content = html.replace(/\n/g, '<br>');
     content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
@@ -262,6 +273,7 @@ function addBubbleToUI(html, sender) {
     container.appendChild(div);
     scrollToBottom();
     
+    // تفعيل MathJax للرسائل القديمة
     if (sender === 'bot' && window.MathJax) {
         window.MathJax.typesetPromise([div]).catch(()=>{});
     }
@@ -309,9 +321,9 @@ function handleImageUpload(inputElement, type) {
                 addBubbleToUI(imgHTML, 'user');
                 saveMessageToSession('Sent an image', 'user');
                 
-                // 🔥 إرسال الصورة للسيرفر للتحليل (التحديث المهم)
+                // 🔥 إرسال الصورة للسيرفر للتحليل (هذا هو الرابط مع chat.js)
                 setTimeout(() => { 
-                    fetchRealAI_Stream("قم بتحليل هذه الصورة وحل التمرين الموجود فيها:", imgData); 
+                    fetchRealAI_Stream("عافاك أستاذ، شوف هاد الصورة وشرح ليا شنو فيها وحل التمرين:", imgData); 
                 }, 500);
 
             } else if (type === 'profile') {
@@ -330,7 +342,7 @@ function setupVoiceRecognition() {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         AppState.recognition = new SpeechRecognition();
-        AppState.recognition.lang = 'ar-MA';
+        AppState.recognition.lang = 'ar-MA'; // الدارجة المغربية
         AppState.recognition.continuous = false;
         
         AppState.recognition.onstart = function() { 
@@ -354,6 +366,7 @@ function setupVoiceRecognition() {
 }
 function triggerMic() { if (AppState.recognition) { try { AppState.recognition.start(); } catch(e) { AppState.recognition.stop(); } } else { alert("Not Supported"); } }
 
+// Helper Functions
 function getSessions() { const s = localStorage.getItem('IKED_SESSIONS'); return s ? JSON.parse(s) : []; }
 function saveSessions(s) { localStorage.setItem('IKED_SESSIONS', JSON.stringify(s)); }
 
