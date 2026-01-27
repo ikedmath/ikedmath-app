@@ -1,8 +1,10 @@
 /* =======================================================
-   IKED ENGINE v2026: DIAMOND EDITION 💎
-   Architecture: NDJSON Event Stream (No Header Trap)
-   Features: Real-time Streaming, Tool Injection, Zero Latency
-   Security: Strict SVG Rules
+   IKED ENGINE v2026: DIAMOND EDITION (VISION & PERSONALITY) 💎👁️
+   Features: 
+   - NDJSON Event Stream (Zero Latency)
+   - Native Tool Calling (Math Graphs)
+   - Vision Support (Image Analysis)
+   - Context-Aware Personalization
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -15,19 +17,19 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* =======================================================
-   1. DEFINING THE TOOL (High Precision Mode) 🎯
+   1. DEFINING THE TOOL 🎯
    ======================================================= */
 const renderGraphTool = {
     functionDeclarations: [
         {
             name: "render_math_graph",
-            description: "Generates a vector graphic (SVG) for math concepts. Call ONLY when visualization is requested.",
+            description: "Generates a vector graphic (SVG). Call ONLY when user asks to visualize.",
             parameters: {
                 type: "OBJECT",
                 properties: {
                     svg_code: {
                         type: "STRING",
-                        description: "PURE SVG code only. No markdown. No <script> tags. Use viewBox='-10 -10 20 20'. Invert Y-axis. Calculate coordinates precisely (e.g. roots, vertex)."
+                        description: "PURE SVG code. viewBox='-10 -10 20 20'. Invert Y-axis. Calculate coordinates precisely."
                     }
                 },
                 required: ["svg_code"]
@@ -36,9 +38,6 @@ const renderGraphTool = {
     ]
 };
 
-/* =======================================================
-   2. SAFETY SETTINGS 🛡️
-   ======================================================= */
 const safetySettings = [
     { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
     { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -47,9 +46,14 @@ const safetySettings = [
 ];
 
 /* =======================================================
-   3. MODEL STRATEGY 🧠
+   2. MODEL STRATEGY 🧠
    ======================================================= */
-function selectModelStrategy(query) {
+function selectModelStrategy(query, hasImage) {
+    // إذا كاين صورة، كنخدمو بموديلات Vision القوية
+    if (hasImage) {
+        return ["gemini-2.0-flash", "gemini-1.5-flash"];
+    }
+
     const q = query.toLowerCase();
     const visualKeywords = ["رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph", "دالة"];
     
@@ -60,24 +64,24 @@ function selectModelStrategy(query) {
 }
 
 /* =======================================================
-   4. THE HANDLER (NDJSON Streamer) 🌊
+   3. THE HANDLER 🌊
    ======================================================= */
 export default async function handler(req, res) {
-    // إعدادات CORS
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
     }
     
-    // 🔥 تغيير نوع المحتوى ليدعم NDJSON (تتابع أحداث JSON)
     res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    const { prompt } = req.body;
-    if (!prompt) {
+    // 🔥 دابا كنستقبلو حتى الصورة (image) والبيانات الشخصية (userProfile)
+    const { prompt, userProfile, image } = req.body;
+    
+    if (!prompt && !image) {
         res.write(JSON.stringify({ type: "error", message: "Input required" }) + "\n");
         res.end(); return;
     }
@@ -90,8 +94,12 @@ export default async function handler(req, res) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const models = selectModelStrategy(prompt);
+        const models = selectModelStrategy(prompt || "", !!image); // نختار الموديل حسب واش كاينة صورة
         let success = false;
+
+        // تجهيز بيانات المستخدم
+        const userName = userProfile?.name || "Student";
+        const userXP = userProfile?.xp || 0;
 
         for (const modelName of models) {
             try {
@@ -103,46 +111,58 @@ export default async function handler(req, res) {
                     generationConfig: { temperature: 0.6 }
                 }, { apiVersion: 'v1beta' });
 
+                // 🔥 System Prompt مخصص ومحدث
+                const systemInstruction = `
+                    You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
+                    You are talking to **${userName}** (XP: ${userXP}).
+                    
+                    🛑 **STRICT PROTOCOL:**
+                    1. **Format:** Streaming NDJSON directly.
+                    2. **Visuals:** Call 'render_math_graph' if asked to draw.
+                    3. **Security:** NO <script> tags in SVG.
+                    4. **Math:** Be precise. Use LaTeX ($$).
+                    5. **Language:** Moroccan Darija (Arabic Script).
+                    6. **Vision:** If an image is provided, analyze it mathematically (extract function, identify curve properties).
+                `;
+
                 const chat = model.startChat({
                     history: [
-                        {
-                            role: "user",
-                            parts: [{ text: `
-                                You are **IKED**, an elite Math Tutor (2 Bac SM).
-                                
-                                🛑 **STRICT PROTOCOL:**
-                                1. **Response Format:** You are streaming directly to a frontend.
-                                2. **Visuals:** If you need to draw, call the 'render_math_graph' tool. You can call it at the beginning, middle, or end of your explanation.
-                                3. **Security:** NEVER generate SVG containing <script>, onclick, or onload events.
-                                4. **Math:** Be precise. Calculate intersection points accurately before drawing.
-                                5. **Language:** Moroccan Darija (Arabic Script).
-                            ` }]
-                        },
-                        { role: "model", parts: [{ text: "مفهوم. سألتزم بالبروتوكول الجديد." }] }
+                        { role: "user", parts: [{ text: systemInstruction }] },
+                        { role: "model", parts: [{ text: `مرحباً ${userName}. أنا واجد.` }] }
                     ]
                 });
 
-                const result = await chat.sendMessageStream(prompt);
+                // 🔥 تحضير الرسالة (نص + صورة إذا وجدت)
+                let messageParts = [];
+                if (prompt) messageParts.push({ text: prompt });
                 
-                // === THE NEW STREAM LOGIC (Event Loop) ===
+                if (image) {
+                    // image خاصها تكون base64 string (بلا header data:image/...)
+                    const base64Data = image.split(',')[1] || image;
+                    messageParts.push({
+                        inlineData: {
+                            mimeType: "image/jpeg", // نفترض JPEG أو نقدرو نجيبوه ديناميكيا
+                            data: base64Data
+                        }
+                    });
+                }
+
+                const result = await chat.sendMessageStream(messageParts);
+                
+                // === STREAM LOGIC (Event Loop) ===
                 for await (const chunk of result.stream) {
-                    
-                    // 1. هل هناك استدعاء للأداة؟ (Drawing Event)
                     const calls = chunk.functionCalls();
                     if (calls && calls.length > 0) {
                         const call = calls[0];
                         if (call.name === "render_math_graph") {
                             const svgCode = call.args.svg_code;
                             
-                            // نرسل حدث الرسم فوراً ومستقلاً
-                            const visualEvent = {
+                            res.write(JSON.stringify({
                                 type: "visual",
                                 data: { type: "SVG", code: svgCode },
-                                xp: 20
-                            };
-                            res.write(JSON.stringify(visualEvent) + "\n");
+                                gamification: { xp: 20 }
+                            }) + "\n");
 
-                            // نطلب الشرح من الموديل
                             const result2 = await chat.sendMessageStream([{
                                 functionResponse: {
                                     name: "render_math_graph",
@@ -150,28 +170,19 @@ export default async function handler(req, res) {
                                 }
                             }]);
 
-                            // نبث شرح الرسم
                             for await (const chunk2 of result2.stream) {
                                 const text2 = chunk2.text();
-                                if (text2) {
-                                    res.write(JSON.stringify({ type: "text", content: text2 }) + "\n");
-                                }
+                                if (text2) res.write(JSON.stringify({ type: "text", content: text2 }) + "\n");
                             }
                         }
-                    } 
-                    
-                    // 2. هل هو نص عادي؟ (Text Event)
-                    else {
+                    } else {
                         const text = chunk.text();
-                        if (text) {
-                            // نرسل النص فوراً (Zero Latency)
-                            res.write(JSON.stringify({ type: "text", content: text }) + "\n");
-                        }
+                        if (text) res.write(JSON.stringify({ type: "text", content: text }) + "\n");
                     }
                 }
 
                 success = true;
-                break; // نجحنا
+                break;
 
             } catch (innerError) {
                 if (innerError.message.includes("429")) await new Promise(r => setTimeout(r, 1000));
@@ -181,7 +192,6 @@ export default async function handler(req, res) {
 
         if (!success) throw new Error("All models failed.");
         
-        // إشارة نهاية البث (اختياري ولكن جيد للنظافة)
         res.write(JSON.stringify({ type: "done" }) + "\n");
         res.end();
 
