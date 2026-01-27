@@ -102,7 +102,8 @@ export default async function handler(req, res) {
                                 🛑 **CRITICAL INSTRUCTIONS:**
                                 1. **Language:** Arabic Script ONLY (الدارجة بالحرف العربي). No Latin/Arabizi.
                                 2. **Method:** Socratic. Guide the student, don't just solve. Ask questions first.
-                                3. **Visuals:** - If user asks to DRAW -> Call 'render_math_graph'.
+                                3. **Math:** Use LaTeX ($$) for everything.
+                                4. **Visuals:** - If the user asks to **DRAW/PLOT**, you MUST call 'render_math_graph' **FIRST** (before any text explanation).
                                    - If text only -> Do NOT call the function.
                             ` }]
                         },
@@ -128,7 +129,8 @@ export default async function handler(req, res) {
                         break; // وجدنا الرسم! نخرج فوراً للمعالجة
                     }
 
-                    // 2. إذا كان نصاً، نرسل الهيدر الفارغ فوراً (لأننا تأكدنا أنه ليس رسماً)
+                    // 2. إذا لم يكن هناك دالة، فهو نص عادي. نرسل الهيدر الفارغ فوراً!
+                    // هذه هي النقطة التي تضمن Zero Latency
                     const text = chunk.text();
                     if (text && !functionCall) {
                         if (!isHeaderSent) {
