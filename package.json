@@ -1,13 +1,13 @@
 {
   "name": "iked-math-tutor",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "AI Math Tutor for 2Bac - Ferrari Edition",
   "type": "module",
   "scripts": {
     "start": "node api/chat.js"
   },
   "dependencies": {
-    "@google/generative-ai": "latest",
+    "@google/generative-ai": "^0.21.0",
     "dotenv": "^16.3.1"
   },
   "engines": {
