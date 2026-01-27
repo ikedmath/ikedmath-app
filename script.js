@@ -1,10 +1,10 @@
 /* =========================================
-   IKED CLIENT ENGINE vFINAL: MATH RENDERER EDITION 📐✨
+   IKED CLIENT ENGINE vFINAL: DIAMOND EDITION 💎
    Architect: The World's Best Programmer
    Features:
-   - Live MathJax Rendering (LaTeX to Math Symbols).
-   - Live Markdown Parsing (Text Formatting).
-   - Robust Streaming & Fail-Safe.
+   - NDJSON Streaming (Zero Latency).
+   - Live MathJax Rendering.
+   - Robust Event Handling.
    ========================================= */
 
 const AppState = { 
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* =========================================
-   1. محرك الاتصال "المدرع" (Streaming Engine) 🛡️
+   1. محرك الاتصال "الفيراري" (Diamond Engine) 💎🏎️
    ========================================= */
 
 async function fetchRealAI_Stream(userText) {
@@ -59,7 +59,7 @@ async function fetchRealAI_Stream(userText) {
         createEmptyBotBubble(botMessageID);
         isStreamActive = true;
 
-        // 3. الاتصال
+        // 3. الاتصال (مع طلب NDJSON)
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -71,87 +71,53 @@ async function fetchRealAI_Stream(userText) {
 
         if (!response.ok) throw new Error(`Server Error: ${response.status}`);
 
-        // 4. قراءة التدفق
+        // 4. قراءة التدفق (NDJSON Stream Loop)
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        
-        let buffer = "";
-        let isMetadataParsed = false;
-        let isFallbackTextMode = false;
+        let buffer = ""; // مخزن مؤقت للأسطر المقطوعة
         let fullResponseText = "";
-        let markdownBuffer = ""; // بافر خاص لتجميع الماركدون قبل عرضه
 
         while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-                 // Force Flush عند النهاية
-                 if (buffer.trim().length > 0) {
-                     if (!isMetadataParsed && buffer.includes("|||STREAM_DIVIDER|||")) {
-                         const parts = buffer.split("|||STREAM_DIVIDER|||");
-                         try { handleMetadata(JSON.parse(parts[0]), botMessageID); } catch(e){}
-                         appendToBotBubble(botMessageID, parts[1] || "");
-                         fullResponseText += (parts[1] || "");
-                     } else {
-                         appendToBotBubble(botMessageID, buffer);
-                         fullResponseText += buffer;
-                     }
-                 }
-                 break;
-            }
+            if (done) break;
 
             const chunk = decoder.decode(value, { stream: true });
-
-            // --- الحالة A: وضع النص العادي (Fallback) ---
-            if (isFallbackTextMode) {
-                appendToBotBubble(botMessageID, chunk);
-                fullResponseText += chunk;
-                continue; 
-            }
-
             buffer += chunk;
+            
+            // تقسيم البيانات إلى أسطر
+            const lines = buffer.split("\n");
+            
+            // نحتفظ بآخر جزء لأنه قد يكون غير مكتمل ونعالجه في الدورة التالية
+            buffer = lines.pop(); 
 
-            // --- الحالة B: محاولة اكتشاف البروتوكول ---
-            if (!isMetadataParsed) {
-                if (buffer.includes("|||STREAM_DIVIDER|||")) {
-                    const parts = buffer.split("|||STREAM_DIVIDER|||");
+            for (const line of lines) {
+                if (line.trim() === "") continue;
+
+                try {
+                    const event = JSON.parse(line);
+
+                    // --- معالجة الأحداث (Event Handling) ---
                     
-                    // معالجة JSON
-                    try {
-                        const jsonPart = parts[0].trim();
-                        if (jsonPart.startsWith('{')) {
-                            const metadata = JSON.parse(jsonPart);
-                            handleMetadata(metadata, botMessageID);
+                    if (event.type === "text") {
+                        // 1. حدث نصي
+                        appendToBotBubble(botMessageID, event.content);
+                        fullResponseText += event.content;
+                    } 
+                    else if (event.type === "visual") {
+                        // 2. حدث مرئي (رسم)
+                        renderVisualEvent(event, botMessageID);
+                        // معالجة الـ XP إذا وجد
+                        if (event.gamification && event.gamification.xp) {
+                            addXP(event.gamification.xp);
                         }
-                    } catch (e) {
-                        console.warn("Meta Parse Warning (Non-Fatal)");
+                    }
+                    else if (event.type === "error") {
+                        // 3. حدث خطأ من السيرفر
+                        appendToBotBubble(botMessageID, `<br><span style="color:red">⚠️ ${event.message}</span>`);
                     }
 
-                    isMetadataParsed = true;
-                    // كتابة الجزء الثاني (النص)
-                    const textPart = parts[1] || "";
-                    if (textPart) {
-                        appendToBotBubble(botMessageID, textPart);
-                        fullResponseText += textPart;
-                    }
-                    buffer = "";
-
-                } else {
-                    // Fail-Safe: إذا طال الانتظار ولم نجد الفاصل
-                    const threshold = 150; // زدنا شوية فالصبر
-                    if (buffer.length > threshold && !buffer.trim().startsWith('{')) {
-                        console.log("⚠️ Fallback to Plain Text");
-                        isFallbackTextMode = true;
-                        appendToBotBubble(botMessageID, buffer);
-                        fullResponseText += buffer;
-                        buffer = "";
-                    }
-                }
-            } else {
-                // --- الحالة D: نحن في وضع الشرح ---
-                if (buffer.length > 0) {
-                    appendToBotBubble(botMessageID, buffer);
-                    fullResponseText += buffer;
-                    buffer = "";
+                } catch (e) {
+                    console.error("JSON Parse Error (Line skipped):", e, line);
                 }
             }
         }
@@ -192,34 +158,21 @@ function createEmptyBotBubble(id) {
     scrollToBottom();
 }
 
-function handleMetadata(meta, msgId) {
+// دالة جديدة لمعالجة الرسم بناءً على النظام الجديد
+function renderVisualEvent(event, msgId) {
     const container = document.getElementById(msgId);
     if (!container) return;
 
-    // 1. SVG
-    if (meta.visuals && meta.visuals.code && meta.visuals.type === 'SVG') {
+    if (event.data && event.data.type === 'SVG') {
         const visDiv = document.createElement('div');
         visDiv.className = 'visual-container fade-in';
-        // نتأكد أن الكود SVG صالح
+        // إضافة الرسم
         visDiv.innerHTML = `
-            ${meta.visuals.code}
-            <div class="visual-caption">🔍 ${'توضيح هندسي'}</div>
+            ${event.data.code}
+            <div class="visual-caption">🔍 توضيح هندسي</div>
         `;
+        // إضافته في مكانه المخصص
         container.querySelector('.visual-wrapper').appendChild(visDiv);
-    }
-
-    // 2. Analogy
-    if (meta.analogy) {
-        const analogyDiv = document.createElement('div');
-        analogyDiv.className = 'analogy-box';
-        analogyDiv.innerHTML = `<strong>💡 فكرة:</strong> ${meta.analogy}`;
-        container.querySelector('.analogy-wrapper').appendChild(analogyDiv);
-    }
-
-    // 3. XP
-    if (meta.gamification) {
-        if (meta.gamification.xp) addXP(meta.gamification.xp);
-        if (meta.gamification.badge) showBadgeNotification(meta.gamification.badge);
     }
 }
 
@@ -229,23 +182,15 @@ function appendToBotBubble(id, text) {
     
     const contentArea = bubble.querySelector('.content-area');
     
-    // 1. معالجة Markdown (إذا كانت المكتبة موجودة)
-    let processedHTML = text;
+    // معالجة أولية للنص (تحويل الأسطر الجديدة)
+    let processedHTML = text.replace(/\n/g, '<br>');
     
-    // ملاحظة: نستخدم marked.parseInline لتجنب تكسير الفقرات أثناء الستريم، 
-    // ولكن للأجزاء الكبيرة من الأفضل تركه نصاً حتى النهاية.
-    // هنا سنقوم بحيلة بسيطة: تحويل الرموز الأساسية يدوياً للسرعة، وترك MathJax يعمل.
-    
-    // تحويل الأسطر الجديدة لـ <br> مؤقتاً
-    processedHTML = processedHTML.replace(/\n/g, '<br>');
-    
-    // 2. الإضافة للشاشة
+    // الإضافة للشاشة
     contentArea.insertAdjacentHTML('beforeend', processedHTML);
     
-    // 3. 🔥 Trigger MathJax (السحر الحقيقي)
-    // نعيد معالجة الفقاعة بأكملها لإظهار الرياضيات
+    // 🔥 Trigger MathJax (Live Rendering)
     if (window.MathJax) {
-        window.MathJax.typesetPromise([contentArea]).catch(err => console.log('MathJax pending...'));
+        window.MathJax.typesetPromise([contentArea]).catch(err => {}); // Silent catch
     }
 
     scrollToBottom();
@@ -303,26 +248,20 @@ function addBubbleToUI(html, sender) {
     div.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
     if (sender === 'bot') div.classList.add('iked-card', 'explanation-section');
     
-    // إذا كانت رسالة قديمة للبوت، نحتاج نعالجوها بـ Markdown/MathJax
-    if (sender === 'bot' && window.marked) {
-        // تنظيف بسيط
-        div.innerHTML = window.marked.parse(html);
-    } else {
-        div.innerHTML = html.replace(/\n/g, '<br>');
-    }
+    // معالجة الرسائل القديمة
+    div.innerHTML = html.replace(/\n/g, '<br>');
 
     const container = document.getElementById('chat-messages');
     container.appendChild(div);
     scrollToBottom();
     
-    // تفعيل MathJax للرسائل القديمة أيضاً
     if (sender === 'bot' && window.MathJax) {
         window.MathJax.typesetPromise([div]).catch(()=>{});
     }
 }
 
 /* =========================================
-   4. باقي الوظائف (Inputs, Auth, etc.)
+   4. باقي الوظائف (Inputs, Auth, etc.) - لم يتم تغييرها
    ========================================= */
 
 function setupInputs() {
