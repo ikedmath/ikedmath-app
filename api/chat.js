@@ -1,9 +1,10 @@
 /* =======================================================
-   IKED ENGINE v2026: FINAL STABLE (GEMINI 2.0 FLASH ONLY) 💎
-   Model: gemini-2.0-flash (The most stable form your list)
-   Fixes: No Hallucinations, No Python, Fast Drawing
+   IKED ENGINE v2026: STABLE CORE (NO HALLUCINATIONS) 💎
+   Model: gemini-2.0-flash (The smartest & most stable)
+   Fixes: Anti-SQLAlchemy, Anti-Echo, Extended Timeout
    ======================================================= */
 
+// 🔥 هاد السطر ضروري باش Vercel يصبر 60 ثانية فالرسم وما يعطيش Error
 export const config = {
     maxDuration: 60,
 };
@@ -17,6 +18,7 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
+// تعريف أداة الرسم بدقة باش يفهمها الموديل دغيا
 const renderGraphTool = {
     functionDeclarations: [
         {
@@ -44,6 +46,7 @@ const safetySettings = [
 ];
 
 export default async function handler(req, res) {
+    // إعدادات CORS
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -71,8 +74,9 @@ export default async function handler(req, res) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
         
-        // 🛑 FIX 1: We use ONLY 'gemini-2.0-flash'. It's on your list and is Stable.
-        // No 'lite', no 'preview', no 'exp'. Just pure power.
+        // 🛑 التغيير الحاسم: كنخدمو غير بـ gemini-2.0-flash
+        // حيت هو الوحيد اللي ذكي ومستقر من القائمة ديالك
+        // الموديلات الأخرى (lite/preview) هي اللي كتعطي SQLAlchemy
         const modelName = "gemini-2.0-flash";
 
         const userName = userProfile?.name || "Student";
@@ -85,16 +89,16 @@ export default async function handler(req, res) {
             safetySettings: safetySettings,
         }, { apiVersion: 'v1beta' });
 
-        // 🛑 FIX 2: Stronger Instructions to prevent "SQLAlchemy" hallucinations
+        // 🛑 تعليمات صارمة جداً باش ما يعاودش يدوخ
         const systemInstruction = `
             You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
             Current User: ${userName}.
             
-            RULES:
-            1. **Identity:** You are a helpful tutor. NEVER output random definitions (like SQLAlchemy).
-            2. **Context:** The user prompt might contain "[HISTORY]". Do NOT repeat it. Read it silently as context.
+            🛑 RULES:
+            1. **Identity:** You are a helpful tutor. NEVER output random definitions (like SQLAlchemy or Python tutorials).
+            2. **Context:** The user prompt might contain "[HISTORY]". Do NOT repeat it in your output. Read it silently.
             3. **Drawing:** If asked to draw/plot, IMMEDIATELY call 'render_math_graph'.
-            4. **No Code:** Do NOT write python code or markdown blocks.
+            4. **No Code:** Do NOT write python code blocks.
             5. **Language:** Moroccan Darija (Arabic script).
         `;
 
@@ -106,7 +110,6 @@ export default async function handler(req, res) {
         });
 
         let messageParts = [];
-        // تنظيف البرومبت باش الموديل ما يتخلطش ليه التاريخ مع السؤال
         if (prompt) messageParts.push({ text: prompt });
         
         if (image) {
@@ -128,13 +131,14 @@ export default async function handler(req, res) {
                 if (call.name === "render_math_graph") {
                     const svgCode = call.args.svg_code;
                     
+                    // إرسال الرسم
                     res.write(JSON.stringify({
                         type: "visual",
                         data: { type: "SVG", code: svgCode },
                         gamification: { xp: 50 }
                     }) + "\n");
 
-                    // نجاوبو الموديل باش يكمل الشرح
+                    // إخبار الموديل بأن الرسم تم بنجاح ليكمل الشرح
                     const result2 = await chat.sendMessageStream([{
                         functionResponse: {
                             name: "render_math_graph",
@@ -158,8 +162,8 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Critical Error:", error);
-        // عرض الخطأ الحقيقي للمساعدة في التشخيص إذا تكرر
-        res.write(JSON.stringify({ type: "error", message: "خطأ في الاتصال. حاول مرة أخرى." }) + "\n");
+        // رسالة خطأ واضحة
+        res.write(JSON.stringify({ type: "error", message: "تعذر الاتصال بالموديل. حاول مجدداً." }) + "\n");
         res.end();
     }
 }
