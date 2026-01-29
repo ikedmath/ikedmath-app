@@ -1,11 +1,11 @@
 /* =======================================================
-   IKED ENGINE v2026: MATH-READY (CORRECT Y-AXIS) 📐
-   Models: Multi-Model Failover (Fast & Smart)
-   Fixes: Y-Axis Inversion (Up is Positive)
+   IKED ENGINE v2026: MATH-READY (CORRECT AXIS & FAILOVER) 💎
+   Architecture: Cascade Strategy (Fastest -> Stable)
+   Fix: Y-Axis Inverted (Positive Y points UP ⬆️)
    ======================================================= */
 
 export const config = {
-    maxDuration: 60,
+    maxDuration: 60, // 60 Seconds Timeout
 };
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -17,24 +17,25 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// نفس لائحة الموديلات السريعة اللي عجباتك
+// 1. لائحة الموديلات (نفس القائمة السريعة التي اخترتها)
 const CANDIDATE_MODELS = [
     "gemini-2.5-flash-lite",           
     "gemini-flash-lite-latest",        
     "gemini-2.0-flash-lite-preview-02-05" 
 ];
 
+// 2. تعديل الأداة: إجبار الموديل على قلب المحور Y
 const renderGraphTool = {
     functionDeclarations: [
         {
             name: "render_math_graph",
-            description: "Generates a math graph SVG. viewBox='-10 -10 20 20'. CRITICAL: SVG Y-axis points DOWN. You MUST NEGATE all Y coordinates (y = -y) so positive Y points UP.",
+            description: "Generates a math graph SVG. viewBox='-10 -10 20 20'. CRITICAL: SVG Y-axis points DOWN. You MUST NEGATE all Y coordinates (y = -y) so positive Y points UP (Math Standard).",
             parameters: {
                 type: "OBJECT",
                 properties: {
                     svg_code: {
                         type: "STRING",
-                        description: "SVG code. Use <g transform='scale(1, -1)'> for paths only (not text). Or manually invert Y coordinates."
+                        description: "SVG code only. Use <g transform='scale(1, -1)'> for paths. Ensure f(x)=x^2 opens UPWARDS."
                     }
                 },
                 required: ["svg_code"]
@@ -82,6 +83,7 @@ export default async function handler(req, res) {
         let success = false;
         let lastError = null;
 
+        // 🛑 Loop of Survival
         for (const modelName of CANDIDATE_MODELS) {
             try {
                 const model = genAI.getGenerativeModel({ 
@@ -97,10 +99,10 @@ export default async function handler(req, res) {
                     
                     🚨 PROTOCOL (MATH MODE):
                     1. **Coordinate System:** SVG uses Y-down. Math uses Y-up.
-                    2. **THE FIX:** When drawing functions (like f(x)=x^2), you MUST calculate y coordinates as **(-y)** or use **transform="scale(1, -1)"**.
+                    2. **THE FIX:** When drawing functions, you MUST calculate y coordinates as **(-y)** or use **transform="scale(1, -1)"**.
                     3. **Visuals:** Call 'render_math_graph' for plots.
                     4. **No Hallucinations:** No python code.
-                    5. **Lang:** Moroccan Darija.
+                    5. **Lang:** Moroccan Darija (Arabic script).
                 `;
 
                 const chat = model.startChat({
@@ -153,6 +155,8 @@ export default async function handler(req, res) {
 
             } catch (innerError) {
                 lastError = innerError;
+                console.warn(`Model ${modelName} failed: ${innerError.message}`);
+                
                 if (innerError.message.includes("429") || innerError.message.includes("503") || innerError.message.includes("404")) {
                     continue; 
                 } else {
@@ -162,16 +166,15 @@ export default async function handler(req, res) {
         }
 
         if (!success) {
-            throw new Error(`All models failed. Last error: ${lastError?.message}`);
+            throw new Error(`All 2026 models failed. Last error: ${lastError?.message}`);
         }
 
         res.write(JSON.stringify({ type: "done" }) + "\n");
         res.end();
 
     } catch (error) {
-        console.error("CRITICAL ERROR:", error);
+        console.error("CRITICAL ENGINE FAILURE:", error);
         res.write(JSON.stringify({ type: "error", message: `System Error: ${error.message}` }) + "\n");
         res.end();
     }
 }
-
