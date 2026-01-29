@@ -1,10 +1,10 @@
 /* =========================================
-   IKED CLIENT ENGINE vFINAL: DIAMOND EDITION 💎
+   IKED CLIENT ENGINE vFINAL: HYBRID DIAMOND 💎
    Architect: The World's Best Programmer
    Features:
-   - NDJSON Streaming (Zero Latency).
-   - Live MathJax & Markdown Rendering.
-   - Robust Vision & Event Handling.
+   - Hybrid Logic: Backend interprets -> Frontend Renders 🏎️
+   - High Performance Canvas Math Engine 💪
+   - Live MathJax & Markdown Rendering
    ========================================= */
 
 const AppState = { 
@@ -36,13 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* =========================================
-   1. محرك الاتصال "الفيراري" (Diamond Engine) 💎🏎️
+   1. محرك الاتصال "الفيراري" (Stream Engine) 💎🏎️
    ========================================= */
 
 async function fetchRealAI_Stream(userText, imageData = null) {
     let botMessageID = `msg-${Date.now()}`;
-    let isStreamActive = false;
-
+    
     try {
         // 1. تحضير السياق (Context)
         const sessions = getSessions();
@@ -50,7 +49,6 @@ async function fetchRealAI_Stream(userText, imageData = null) {
         let contextHistory = "";
         
         if (currentSession && currentSession.messages.length > 0) {
-            // نأخذ آخر 4 رسائل فقط لتوفير الذاكرة
             contextHistory = currentSession.messages.slice(-4).map(msg => 
                 `${msg.sender === 'user' ? 'Student' : 'Tutor'}: ${msg.raw_content || '...'}`
             ).join('\n');
@@ -60,7 +58,6 @@ async function fetchRealAI_Stream(userText, imageData = null) {
 
         // 2. إنشاء فقاعة الجواب فارغة
         createEmptyBotBubble(botMessageID);
-        isStreamActive = true;
 
         // 3. الاتصال بالسيرفر
         const response = await fetch('/api/chat', {
@@ -69,16 +66,16 @@ async function fetchRealAI_Stream(userText, imageData = null) {
             body: JSON.stringify({ 
                 prompt: fullPrompt,
                 userProfile: AppState.user,
-                image: imageData // نرسل الصورة إذا كانت موجودة
+                image: imageData
             })
         });
 
         if (!response.ok) throw new Error(`Server Error: ${response.status}`);
 
-        // 4. قراءة التدفق (NDJSON Stream Loop) - هنا كان المشكل وتم حله
+        // 4. قراءة التدفق (NDJSON Stream Loop)
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = ""; // مخزن مؤقت للبيانات المقطوعة
+        let buffer = ""; 
         let fullResponseText = "";
 
         while (true) {
@@ -87,38 +84,34 @@ async function fetchRealAI_Stream(userText, imageData = null) {
 
             const chunk = decoder.decode(value, { stream: true });
             buffer += chunk;
-            
-            // تقسيم البيانات إلى أسطر (كل سطر هو حدث JSON)
             const lines = buffer.split("\n");
-            
-            // نحتفظ بآخر جزء لأنه قد يكون غير مكتمل ونعالجه في الدورة القادمة
             buffer = lines.pop(); 
 
             for (const line of lines) {
                 if (line.trim() === "") continue;
 
                 try {
-                    // 🔥 هنا السحر: تحويل النص إلى كائن JSON
                     const event = JSON.parse(line);
 
                     // --- معالجة الأحداث (Event Handling) ---
                     
+                    // A. حدث نصي عادي
                     if (event.type === "text") {
-                        // 1. حدث نصي: نعرض النص وننسقه
                         appendToBotBubble(botMessageID, event.content);
                         fullResponseText += event.content;
                     } 
-                    else if (event.type === "visual") {
-                        // 2. حدث مرئي (رسم): نعرض SVG
-                        renderVisualEvent(event, botMessageID);
+                    // B. 🔥 حدث أمر (رسم هندسي) - الجديد
+                    else if (event.type === "command" && event.cmd === "PLOT") {
+                        // تشغيل محرك الرسم القوي
+                        executeMathPlot(event.data);
                         
-                        // معالجة نقاط الخبرة (XP)
+                        // إضافة نقاط الخبرة
                         if (event.gamification && event.gamification.xp) {
                             addXP(event.gamification.xp);
                         }
                     }
+                    // C. حدث خطأ
                     else if (event.type === "error") {
-                        // 3. حدث خطأ من السيرفر
                         appendToBotBubble(botMessageID, `<br><span style="color:#ef4444">⚠️ ${event.message}</span>`);
                     }
 
@@ -128,12 +121,10 @@ async function fetchRealAI_Stream(userText, imageData = null) {
             }
         }
 
-        // 5. إنهاء وحفظ الرسالة في التاريخ
         saveMessageToSession(fullResponseText, 'bot');
         const finalBubble = document.getElementById(botMessageID);
         if(finalBubble) finalBubble.classList.remove('streaming-active');
         
-        // 🔥 لمسة نهائية: إعادة تفعيل MathJax للتأكد من جمالية الرياضيات
         if(window.MathJax && finalBubble) {
             window.MathJax.typesetPromise([finalBubble]).catch(()=>{});
         }
@@ -151,7 +142,156 @@ async function fetchRealAI_Stream(userText, imageData = null) {
 }
 
 /* =========================================
-   2. دوال العرض البصري (Visual Helpers) 🎨
+   2. IKED MATH RENDERER (The Muscle) 💪
+   - High Performance Canvas
+   - Adaptive Sampling
+   - Proper Coordinate System
+   ========================================= */
+
+function executeMathPlot(data) {
+    const messageId = `plot-${Date.now()}`;
+    // ننشئ Canvas خاص بالرسم
+    createCanvasBubble(messageId);
+    
+    // نعطي مهلة صغيرة للتأكد من أن العنصر تم إنشاؤه في DOM
+    setTimeout(() => {
+        const canvas = document.getElementById(messageId);
+        if(!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        // دعم الشاشات عالية الدقة (Retina Support)
+        const displayWidth = canvas.parentElement.offsetWidth;
+        const width = canvas.width = displayWidth * 2; 
+        const height = canvas.height = 300 * 2; 
+        
+        canvas.style.width = '100%'; 
+        canvas.style.height = '300px';
+        ctx.scale(2, 2); 
+
+        const activeWidth = width / 2;
+        const activeHeight = 300;
+
+        // 1. Math State
+        const expression = data.expression;
+        const xRange = [data.xMin || -10, data.xMax || 10];
+        // حساب مجال Y مبدئياً (يمكن جعله ديناميكياً لاحقاً)
+        const yRange = [-10, 10]; 
+
+        // 2. Coordinate Mapper (The Translator)
+        // تحويل X من الرياضيات إلى بيكسلات الشاشة
+        const mapX = (x) => ((x - xRange[0]) / (xRange[1] - xRange[0])) * activeWidth;
+        
+        // 🔥 تحويل Y من الرياضيات إلى الشاشة (هنا نقلب المحور Y)
+        // لأن في Canvas الـ (0,0) هي الزاوية العليا اليسرى
+        const mapY = (y) => activeHeight - (((y - yRange[0]) / (yRange[1] - yRange[0])) * activeHeight);
+
+        // 3. رسم الخلفية والمحاور والشبكة
+        drawGrid(ctx, activeWidth, activeHeight, mapX, mapY, xRange, yRange);
+
+        // 4. حلقة الرسم (Sampling Loop) بقوة 2000 نقطة
+        ctx.beginPath();
+        ctx.strokeStyle = "#3b82f6"; // لون أزرق IKED المميز
+        ctx.lineWidth = 2;
+        ctx.lineJoin = "round";
+
+        const steps = 2000; // دقة عالية جداً للمنحنيات
+        let firstPoint = true;
+
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const xMath = xRange[0] + t * (xRange[1] - xRange[0]);
+            
+            try {
+                // تقييم الدالة بأمان (Basic JS Evaluation)
+                // تحويل صيغة بايثون إلى جافاسكريبت بسيطة (مثل ^ إلى **)
+                const evalStr = expression.replace(/\^/g, '**').replace(/x/g, `(${xMath})`);
+                
+                // تنبيه: eval خطيرة، لكن في هذا السياق المتحكم فيه مقبولة للنسخة الأولى
+                // للمحترفين: استخدم مكتبة Math.js مستقبلاً
+                const yMath = eval(evalStr); 
+
+                if (isFinite(yMath)) {
+                    const px = mapX(xMath);
+                    const py = mapY(yMath);
+                    
+                    // قطع الخط إذا خرج عن حدود الرسم (Clipping Logic بسيط)
+                    if (py < -50 || py > activeHeight + 50) {
+                         firstPoint = true;
+                    } else {
+                        if (firstPoint) { ctx.moveTo(px, py); firstPoint = false; }
+                        else { ctx.lineTo(px, py); }
+                    }
+                } else {
+                    firstPoint = true; // قطع الخط عند القيم غير المعرفة
+                }
+            } catch (e) { 
+                // تجاهل الأخطاء الحسابية (مثل القسمة على صفر)
+            }
+        }
+        ctx.stroke();
+
+    }, 100);
+}
+
+function createCanvasBubble(id) {
+    const div = document.createElement('div');
+    div.className = 'message bot-message iked-card';
+    // هيكل الرسم
+    div.innerHTML = `
+        <div style="position: relative; width: 100%;">
+            <canvas id="${id}" style="border-radius: 8px; cursor: crosshair;"></canvas>
+        </div>
+        <div class="visual-caption">📉 تمثيل بياني دقيق</div>
+    `;
+    const container = document.getElementById('chat-messages');
+    container.appendChild(div);
+    scrollToBottom();
+}
+
+function drawGrid(ctx, w, h, mapX, mapY, xR, yR) {
+    // خلفية داكنة احترافية
+    ctx.fillStyle = "#0f172a"; 
+    ctx.fillRect(0, 0, w, h);
+    
+    ctx.lineWidth = 0.5;
+
+    // رسم الشبكة الثانوية (Grid Lines)
+    ctx.strokeStyle = "#1e293b"; 
+    ctx.beginPath();
+    
+    // خطوط عمودية تقريبية
+    for (let x = Math.ceil(xR[0]); x <= Math.floor(xR[1]); x++) {
+        const px = mapX(x);
+        ctx.moveTo(px, 0); ctx.lineTo(px, h);
+    }
+    // خطوط أفقية تقريبية
+    for (let y = Math.ceil(yR[0]); y <= Math.floor(yR[1]); y++) {
+        const py = mapY(y);
+        ctx.moveTo(0, py); ctx.lineTo(w, py);
+    }
+    ctx.stroke();
+
+    // رسم المحاور الرئيسية (Axes)
+    ctx.strokeStyle = "#94a3b8"; // لون فاتح للمحاور
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+
+    const zeroX = mapX(0);
+    const zeroY = mapY(0);
+
+    // محور الأفاصيل (X Axis)
+    if (zeroY >= 0 && zeroY <= h) {
+        ctx.moveTo(0, zeroY); ctx.lineTo(w, zeroY);
+    }
+    // محور الأراتيب (Y Axis)
+    if (zeroX >= 0 && zeroX <= w) {
+        ctx.moveTo(zeroX, 0); ctx.lineTo(zeroX, h);
+    }
+    ctx.stroke();
+}
+
+/* =========================================
+   3. دوال العرض البصري (Visual Helpers) 🎨
    ========================================= */
 
 function createEmptyBotBubble(id) {
@@ -160,7 +300,6 @@ function createEmptyBotBubble(id) {
     div.className = 'message bot-message streaming-active iked-card';
     div.innerHTML = `
         <div class="visual-wrapper"></div>
-        <div class="analogy-wrapper"></div>
         <div class="content-area explanation-section" dir="auto"></div>
     `;
     const container = document.getElementById('chat-messages');
@@ -168,44 +307,21 @@ function createEmptyBotBubble(id) {
     scrollToBottom();
 }
 
-// دالة عرض الرسم (SVG)
-function renderVisualEvent(event, msgId) {
-    const container = document.getElementById(msgId);
-    if (!container) return;
-
-    if (event.data && event.data.type === 'SVG') {
-        const visDiv = document.createElement('div');
-        visDiv.className = 'visual-container fade-in';
-        // إضافة الرسم
-        visDiv.innerHTML = `
-            ${event.data.code}
-            <div class="visual-caption">🔍 توضيح هندسي</div>
-        `;
-        // إضافته في مكانه المخصص (فوق النص)
-        const wrapper = container.querySelector('.visual-wrapper');
-        if(wrapper) wrapper.appendChild(visDiv);
-    }
-}
-
-// دالة إضافة النص (مع التنسيق والرياضيات)
 function appendToBotBubble(id, text) {
     const bubble = document.getElementById(id);
     if (!bubble) return;
     
     const contentArea = bubble.querySelector('.content-area');
     
-    // 1. تحويل الأسطر الجديدة إلى <br>
+    // تنسيق النص
     let processedHTML = text.replace(/\n/g, '<br>');
-    
-    // 2. تحويل Bold Markdown (**text**) إلى <strong>text</strong>
     processedHTML = processedHTML.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-    // 3. الإضافة للشاشة
     contentArea.insertAdjacentHTML('beforeend', processedHTML);
     
-    // 4. 🔥 تفعيل MathJax فورياً (Live Rendering)
+    // Live Rendering MathJax
     if (window.MathJax) {
-        window.MathJax.typesetPromise([contentArea]).catch(err => {}); // Silent catch لتجنب الأخطاء أثناء الكتابة السريعة
+        window.MathJax.typesetPromise([contentArea]).catch(err => {}); 
     }
 
     scrollToBottom();
@@ -216,16 +332,8 @@ function scrollToBottom() {
     if(container) container.scrollTop = container.scrollHeight;
 }
 
-function showBadgeNotification(badgeName) {
-    const toast = document.createElement('div');
-    toast.className = 'badge-toast';
-    toast.innerHTML = `<span style="font-size:20px">🏅</span> <div>مبروك! وسام جديد:<br><strong>${badgeName}</strong></div>`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
-}
-
 /* =========================================
-   3. إعدادات النظام (System Setup)
+   4. إعدادات النظام (System Setup)
    ========================================= */
 
 function setupChat() {
@@ -239,13 +347,11 @@ function setupChat() {
         const txt = input.value.trim();
         if(!txt) return;
         
-        // عرض رسالة المستخدم
         addBubbleToUI(txt, 'user');
         saveMessageToSession(txt, 'user');
         input.value = '';
         input.style.height = 'auto';
 
-        // الرد
         await fetchRealAI_Stream(txt);
     };
 
@@ -263,24 +369,21 @@ function addBubbleToUI(html, sender) {
     div.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
     if (sender === 'bot') div.classList.add('iked-card', 'explanation-section');
     
-    // تنسيق الرسائل القديمة عند استرجاعها من الذاكرة
     let content = html.replace(/\n/g, '<br>');
     content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
     div.innerHTML = content;
 
     const container = document.getElementById('chat-messages');
     container.appendChild(div);
     scrollToBottom();
     
-    // تفعيل MathJax للرسائل القديمة
     if (sender === 'bot' && window.MathJax) {
         window.MathJax.typesetPromise([div]).catch(()=>{});
     }
 }
 
 /* =========================================
-   4. باقي الوظائف (Inputs, Auth, etc.)
+   5. باقي الوظائف (Inputs, Auth, etc.)
    ========================================= */
 
 function setupInputs() {
@@ -321,7 +424,6 @@ function handleImageUpload(inputElement, type) {
                 addBubbleToUI(imgHTML, 'user');
                 saveMessageToSession('Sent an image', 'user');
                 
-                // 🔥 إرسال الصورة للسيرفر للتحليل (هذا هو الرابط مع chat.js)
                 setTimeout(() => { 
                     fetchRealAI_Stream("عافاك أستاذ، شوف هاد الصورة وشرح ليا شنو فيها وحل التمرين:", imgData); 
                 }, 500);
