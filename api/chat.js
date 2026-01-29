@@ -1,11 +1,11 @@
 /* =======================================================
-   IKED ENGINE v2026: CLEAN ELITE (NO 404 ERRORS) 💎
-   Models: 2.0 Flash (Stable) -> 2.0 Flash Lite (Backup)
-   Logic: Backend Extracts Math -> Frontend Renders
+   IKED ENGINE v2026: QUOTA BYPASS EDITION 💎
+   Models: Experimental & Lite Previews (Avoids blocked models)
+   Strategy: gemini-exp-1206 -> gemini-2.0-flash-lite-preview
    ======================================================= */
 
 export const config = {
-    maxDuration: 60, // 60 Seconds Timeout
+    maxDuration: 60,
 };
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -17,11 +17,11 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// 🛑 اللائحة النظيفة (حيدنا exp وحيدنا 1.5 وحيدنا التواريخ القديمة)
+// 🛑 لائحة "الاختراق": موديلات قوية ولكن ماشي هي اللي عليها الضغط
 const CANDIDATE_MODELS = [
-    "gemini-2.0-flash",          // 1. العملاق المستقر (1500 request/day)
-    "gemini-2.0-flash-lite",     // 2. البديل السريع (موجود رسمياً)
-    "gemini-2.0-flash-001"       // 3. نسخة أخرى من الفلاش للضمان
+    "gemini-exp-1206",                 // 1. موديل دجنبر القوي (Gemini 2.0 Beta) - غالباً الكوطا ديالو خاوية
+    "gemini-2.0-flash-lite-preview",   // 2. النسخة الخفيفة (بدون تاريخ محدد لتفادي 404)
+    "gemini-2.0-flash-lite-001"        // 3. بديل آخر من القائمة
 ];
 
 // الأداة: استخراج المعادلة فقط
@@ -159,15 +159,13 @@ export default async function handler(req, res) {
 
             } catch (innerError) {
                 lastError = innerError;
-                console.warn(`Model ${modelName} failed (${innerError.message}), switching...`);
-                // الفلترة: إذا كان 404 (مكينش) أو 429 (كوطا) ندوزو للي موراه
+                // الفلترة: ندوزو للموديل التالي
                 continue; 
             }
         }
 
         if (!success) {
-            // هنا كنرجعو الخطأ الأصلي باش نعرفو المشكل فين
-            throw new Error(`All models failed. Last Error: ${lastError?.message}`);
+            throw new Error(`All High-End models blocked (Quota 0 or 429). Last Error: ${lastError?.message}`);
         }
 
         res.write(JSON.stringify({ type: "done" }) + "\n");
