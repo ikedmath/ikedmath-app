@@ -1,7 +1,7 @@
 /* =======================================================
-   IKED ENGINE v2026: FORCE EXECUTION (NO PRINT CODE) 💎
-   Models: 2026 Fast Series (Cascade)
-   Fixes: Y-Axis Inversion + Anti-Code Printing
+   IKED ENGINE v2026: HYBRID LOGIC (BRAIN ONLY) 🧠
+   Architecture: Backend Extracts Math -> Frontend Renders
+   Models: 2026 Fast Series (Failover Strategy)
    ======================================================= */
 
 export const config = {
@@ -17,28 +17,30 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// 1. لائحة الموديلات 2026 (السرعة والقوة)
+// 1. لائحة الموديلات السريعة (نفس القائمة المفضلة لديك)
 const CANDIDATE_MODELS = [
     "gemini-2.5-flash-lite",           
     "gemini-flash-lite-latest",        
     "gemini-2.0-flash-lite-preview-02-05" 
 ];
 
-// 2. تعريف الأداة (مع تنبيه شديد اللهجة)
-const renderGraphTool = {
+// 2. الأداة الجديدة: استخراج المعادلة فقط (بدون رسم)
+const mathPlotTool = {
     functionDeclarations: [
         {
-            name: "render_math_graph",
-            description: "EXECUTE this function to draw. DO NOT print the code. SVG Y-axis is down, so you MUST NEGATE Y coordinates (y = -y) for Math.",
+            name: "plot_function",
+            description: "Extracts the mathematical expression to be plotted by the client engine. Call this whenever the user asks to draw a function.",
             parameters: {
                 type: "OBJECT",
                 properties: {
-                    svg_code: {
-                        type: "STRING",
-                        description: "Raw SVG code only. Use <g transform='scale(1, -1)'>. No markdown, no text."
-                    }
+                    expression: { 
+                        type: "STRING", 
+                        description: "The math expression in JavaScript format (e.g. 'x**2', 'Math.sin(x)', 'x + 5'). Use 'x' as the variable." 
+                    },
+                    xMin: { type: "NUMBER", description: "Start of x domain (default -10)" },
+                    xMax: { type: "NUMBER", description: "End of x domain (default 10)" }
                 },
-                required: ["svg_code"]
+                required: ["expression"]
             }
         }
     ]
@@ -83,32 +85,31 @@ export default async function handler(req, res) {
         let success = false;
         let lastError = null;
 
-        // 🛑 Loop of Survival
+        // 🛑 Loop of Survival: نجربو الموديلات واحد بواحد
         for (const modelName of CANDIDATE_MODELS) {
             try {
                 const model = genAI.getGenerativeModel({ 
                     model: modelName,
-                    tools: [renderGraphTool],
+                    tools: [mathPlotTool],
                     toolConfig: { functionCallingConfig: { mode: "AUTO" } },
                     safetySettings: safetySettings,
                 }, { apiVersion: 'v1beta' });
 
-                // 🛑 SYSTEM INSTRUCTION: THE ANTI-CODE SHIELD
                 const systemInstruction = `
-                    You are **IKED**, a Math Tutor for 2 Bac SM. User: ${userName}.
+                    You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
+                    Current User: ${userName}.
                     
-                    🚨 **CRITICAL EXECUTION RULES:**
-                    1. **ACTION OVER TEXT:** If asked to draw, **DO NOT** write code like \`print(render...)\` or JSON \`{"tool_code"...\}\`.
-                    2. **FORCE CALL:** You must **NATIVELY CALL** the function \`render_math_graph\`.
-                    3. **MATH AXIS:** SVG Y points down. YOU MUST CALCULATE coordinates as **(x, -y)** so the graph looks correct.
-                    4. **LANG:** Moroccan Darija.
-                    5. **NO HALLUCINATIONS:** Do not act like a Python interpreter. Act like a Tool User.
+                    🚨 PROTOCOL (HYBRID ENGINE):
+                    1. **Drawing Task:** If asked to draw/plot, extract the formula and CALL 'plot_function'. DO NOT generate SVG or ASCII art.
+                    2. **Example:** "Draw x squared" -> Call plot_function({ expression: "x**2" }).
+                    3. **No Code:** Do not write python code or markdown blocks.
+                    4. **Lang:** Moroccan Darija (Arabic script).
                 `;
 
                 const chat = model.startChat({
                     history: [
                         { role: "user", parts: [{ text: systemInstruction }] },
-                        { role: "model", parts: [{ text: "Bien reçu. I will execute the function directly, NOT print it." }] }
+                        { role: "model", parts: [{ text: "مفهوم. سأقوم باستخراج المعادلات ليرسمها المحرك." }] }
                     ]
                 });
 
@@ -125,21 +126,23 @@ export default async function handler(req, res) {
                     const calls = chunk.functionCalls();
                     if (calls && calls.length > 0) {
                         const call = calls[0];
-                        if (call.name === "render_math_graph") {
-                            const svgCode = call.args.svg_code;
-                            // هنا فين كان المشكل، دابا غايصيفط SVG ديريكت
+                        if (call.name === "plot_function") {
+                            // 🚀 هنا التغيير الكبير: نرسل أمراً للمحرك (Frontend)
                             res.write(JSON.stringify({
-                                type: "visual",
-                                data: { type: "SVG", code: svgCode },
-                                gamification: { xp: 50 }
+                                type: "command",  // نوع جديد خاص بالأوامر
+                                cmd: "PLOT",
+                                data: call.args,
+                                gamification: { xp: 20 }
                             }) + "\n");
 
+                            // نخبر الموديل أننا أرسلنا الأمر بنجاح
                             const result2 = await chat.sendMessageStream([{
                                 functionResponse: {
-                                    name: "render_math_graph",
-                                    response: { status: "success", content: "Graph rendered successfully." }
+                                    name: "plot_function",
+                                    response: { status: "success", content: "Command sent to rendering engine." }
                                 }
                             }]);
+                            
                             for await (const chunk2 of result2.stream) {
                                 const text2 = chunk2.text();
                                 if (text2) res.write(JSON.stringify({ type: "text", content: text2 }) + "\n");
@@ -156,7 +159,7 @@ export default async function handler(req, res) {
 
             } catch (innerError) {
                 lastError = innerError;
-                // ندوزو للموديل التالي إلا كان المشكل فالرصيد أو السيرفر
+                // Failover logic
                 if (innerError.message.includes("429") || innerError.message.includes("503") || innerError.message.includes("404")) {
                     continue; 
                 } else {
