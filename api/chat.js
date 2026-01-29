@@ -1,11 +1,11 @@
 /* =======================================================
-   IKED ENGINE v2026: ELITE MODELS ONLY (NO 1.5) 💎
-   Architecture: Backend Extracts Math -> Frontend Renders
-   Models: Strictly High-End (2.0 & 2.5 Only)
+   IKED ENGINE v2026: UNSTOPPABLE ELITE 💎
+   Strategy: High Quota Priority -> Failover
+   Models: 2.0 Flash (High Limit) -> 2.0 Exp (Backup)
    ======================================================= */
 
 export const config = {
-    maxDuration: 60, // 60 Seconds Timeout
+    maxDuration: 60,
 };
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -17,28 +17,28 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// 🛑 لائحة النخبة فقط (تم حذف 1.5 نهائياً)
+// 🛑 اللائحة الذكية (تفادينا 2.5 حيت فيه 20 طلب فقط)
 const CANDIDATE_MODELS = [
-    "gemini-2.0-flash",                    // الخيار 1: القوة والاستقرار
-    "gemini-2.0-flash-lite-preview-02-05", // الخيار 2: السرعة (من قائمتك)
-    "gemini-2.5-flash-lite"                // الخيار 3: الجيل الجديد (من قائمتك)
+    "gemini-2.0-flash",        // 1. العملاق: كوطا كبيرة (1500/يوم) + ذكاء عالي
+    "gemini-2.0-flash-001",    // 2. البديل الرسمي: نفس القوة
+    "gemini-2.0-flash-exp",    // 3. التجريبي: كاحتياط أخير
 ];
 
-// الأداة: استخراج المعادلة فقط
+// أداة استخراج المعادلة (Hybrid Brain)
 const mathPlotTool = {
     functionDeclarations: [
         {
             name: "plot_function",
-            description: "Extracts the mathematical expression to be plotted by the client engine. Call this whenever the user asks to draw a function.",
+            description: "Extracts the mathematical expression for the client engine. Call this for ANY drawing task.",
             parameters: {
                 type: "OBJECT",
                 properties: {
                     expression: { 
                         type: "STRING", 
-                        description: "The math expression in JavaScript format (e.g. 'x**2', 'Math.sin(x)', 'x + 5'). Use 'x' as the variable." 
+                        description: "JS Math expression (e.g. 'x**2', 'Math.sin(x)'). Variable must be 'x'." 
                     },
-                    xMin: { type: "NUMBER", description: "Start of x domain (default -10)" },
-                    xMax: { type: "NUMBER", description: "End of x domain (default 10)" }
+                    xMin: { type: "NUMBER", description: "Default -10" },
+                    xMax: { type: "NUMBER", description: "Default 10" }
                 },
                 required: ["expression"]
             }
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         let success = false;
         let lastError = null;
 
-        // 🛑 Loop of Survival (Exclusive 2026 Models)
+        // 🛑 Loop of Survival
         for (const modelName of CANDIDATE_MODELS) {
             try {
                 const model = genAI.getGenerativeModel({ 
@@ -96,20 +96,18 @@ export default async function handler(req, res) {
                 }, { apiVersion: 'v1beta' });
 
                 const systemInstruction = `
-                    You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
-                    Current User: ${userName}.
+                    You are **IKED**, an elite Math Tutor for 2 Bac SM. User: ${userName}.
                     
-                    🚨 PROTOCOL (HYBRID ENGINE):
-                    1. **Drawing Task:** If asked to draw/plot, extract the formula and CALL 'plot_function'. DO NOT generate SVG or ASCII art.
-                    2. **Example:** "Draw x squared" -> Call plot_function({ expression: "x**2" }).
-                    3. **No Code:** Do not write python code or markdown blocks.
-                    4. **Lang:** Moroccan Darija (Arabic script).
+                    🚨 RULES:
+                    1. **Task:** If user wants to draw/plot, extract formula & CALL 'plot_function'.
+                    2. **No Code:** Do not write Python/Markdown code.
+                    3. **Lang:** Moroccan Darija.
                 `;
 
                 const chat = model.startChat({
                     history: [
                         { role: "user", parts: [{ text: systemInstruction }] },
-                        { role: "model", parts: [{ text: "مفهوم. سأقوم باستخراج المعادلات ليرسمها المحرك." }] }
+                        { role: "model", parts: [{ text: "مفهوم. سأستخدم المحرك للرسم." }] }
                     ]
                 });
 
@@ -127,7 +125,7 @@ export default async function handler(req, res) {
                     if (calls && calls.length > 0) {
                         const call = calls[0];
                         if (call.name === "plot_function") {
-                            // إرسال أمر الرسم للمحرك
+                            // إرسال أمر الرسم (Command)
                             res.write(JSON.stringify({
                                 type: "command",
                                 cmd: "PLOT",
@@ -135,11 +133,10 @@ export default async function handler(req, res) {
                                 gamification: { xp: 20 }
                             }) + "\n");
 
-                            // إخبار الموديل بالنجاح
                             const result2 = await chat.sendMessageStream([{
                                 functionResponse: {
                                     name: "plot_function",
-                                    response: { status: "success", content: "Command sent to rendering engine." }
+                                    response: { status: "success", content: "Graph command sent." }
                                 }
                             }]);
                             
@@ -159,14 +156,15 @@ export default async function handler(req, res) {
 
             } catch (innerError) {
                 lastError = innerError;
-                console.warn(`Model ${modelName} failed, switching...`);
-                // الفلترة: إذا كان الموديل غير موجود (404) ننتقل للتالي فوراً
+                // إذا كان الخطأ هو Quota (429) أو غير موجود (404)، ندوزو للموديل التالي
+                console.warn(`Model ${modelName} failed (${innerError.message}), switching...`);
                 continue; 
             }
         }
 
         if (!success) {
-            throw new Error(`All elite models failed. Check API Key. Last Error: ${lastError?.message}`);
+            // رسالة واضحة للمستخدم
+            throw new Error(`All models exhausted. Please use a NEW API Key. Last Error: ${lastError?.message}`);
         }
 
         res.write(JSON.stringify({ type: "done" }) + "\n");
