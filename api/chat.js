@@ -1,10 +1,10 @@
 /* =======================================================
-   IKED ENGINE v2026: DIAMOND EDITION (VISION & PERSONALITY) 💎👁️
+   IKED ENGINE v2026: DIAMOND EDITION (STRICT VISUALS) 💎
    Features: 
    - NDJSON Event Stream (Zero Latency)
-   - Native Tool Calling (Math Graphs)
-   - Vision Support (Image Analysis)
-   - Context-Aware Personalization
+   - Native Tool Calling (Math Graphs) - FIXED
+   - Anti-Hallucination Protocol (No Python Code)
+   - Vision Support & Personalization
    ======================================================= */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -23,13 +23,13 @@ const renderGraphTool = {
     functionDeclarations: [
         {
             name: "render_math_graph",
-            description: "Generates a vector graphic (SVG). Call ONLY when user asks to visualize.",
+            description: "Generates a vector graphic (SVG). Call this function whenever the user asks to visualize, draw, or plot a function/shape.",
             parameters: {
                 type: "OBJECT",
                 properties: {
                     svg_code: {
                         type: "STRING",
-                        description: "PURE SVG code. viewBox='-10 -10 20 20'. Invert Y-axis. Calculate coordinates precisely."
+                        description: "PURE SVG code. Standard XML. No markdown blocks. Use viewBox='-10 -10 20 20' for standard plots. Invert Y-axis if needed."
                     }
                 },
                 required: ["svg_code"]
@@ -49,36 +49,37 @@ const safetySettings = [
    2. MODEL STRATEGY 🧠
    ======================================================= */
 function selectModelStrategy(query, hasImage) {
-    // إذا كاين صورة، كنخدمو بموديلات Vision القوية
     if (hasImage) {
-        return ["gemini-2.0-flash", "gemini-1.5-flash"];
+        return ["gemini-1.5-flash", "gemini-2.0-flash"]; // Vision models
     }
 
     const q = query.toLowerCase();
     const visualKeywords = ["رسم", "draw", "svg", "منحنى", "شكل", "plot", "graph", "دالة"];
     
+    // إذا طلب الرسم، نحتاج موديل ذكي جداً
     if (visualKeywords.some(k => q.includes(k))) {
-        return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05"];
+        return ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-2.0-flash-lite-preview-02-05"];
     }
-    return ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-lite-latest"]; 
+    return ["gemini-1.5-flash", "gemini-2.5-flash-lite", "gemini-flash-lite-latest"]; 
 }
 
 /* =======================================================
    3. THE HANDLER 🌊
    ======================================================= */
 export default async function handler(req, res) {
+    // CORS Setup
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
     }
     
+    // NDJSON Headers
     res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    // 🔥 دابا كنستقبلو حتى الصورة (image) والبيانات الشخصية (userProfile)
     const { prompt, userProfile, image } = req.body;
     
     if (!prompt && !image) {
@@ -94,10 +95,9 @@ export default async function handler(req, res) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const models = selectModelStrategy(prompt || "", !!image); // نختار الموديل حسب واش كاينة صورة
+        const models = selectModelStrategy(prompt || "", !!image);
         let success = false;
 
-        // تجهيز بيانات المستخدم
         const userName = userProfile?.name || "Student";
         const userXP = userProfile?.xp || 0;
 
@@ -108,40 +108,37 @@ export default async function handler(req, res) {
                     tools: [renderGraphTool],
                     toolConfig: { functionCallingConfig: { mode: "AUTO" } },
                     safetySettings: safetySettings,
-                    generationConfig: { temperature: 0.6 }
                 }, { apiVersion: 'v1beta' });
 
-                // 🔥 System Prompt مخصص ومحدث
+                // 🔥 THE STRICT PROTOCOL (تم التحديث حسب طلبك)
                 const systemInstruction = `
                     You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
                     You are talking to **${userName}** (XP: ${userXP}).
                     
                     🛑 **STRICT PROTOCOL:**
-                    1. **Format:** Streaming NDJSON directly.
-                    2. **Visuals:** Call 'render_math_graph' if asked to draw.
-                    3. **Security:** NO <script> tags in SVG.
-                    4. **Math:** Be precise. Use LaTeX ($$).
+                    1. **Format:** You are streaming NDJSON directly to a frontend.
+                    2. **Visuals:** When asked to draw/plot, you MUST use the 'render_math_graph' tool.
+                    3. **ANTI-HALLUCINATION:** DO NOT write python code (e.g., print(api...)). DO NOT output markdown code blocks for graphs. JUST CALL THE FUNCTION.
+                    4. **Math:** Be precise. Use LaTeX ($$) for math formulas.
                     5. **Language:** Moroccan Darija (Arabic Script).
-                    6. **Vision:** If an image is provided, analyze it mathematically (extract function, identify curve properties).
+                    6. **Vision:** If an image is provided, analyze it mathematically.
                 `;
 
                 const chat = model.startChat({
                     history: [
                         { role: "user", parts: [{ text: systemInstruction }] },
-                        { role: "model", parts: [{ text: `مرحباً ${userName}. أنا واجد.` }] }
+                        { role: "model", parts: [{ text: `مفهوم. سألتزم بالتعليمات بصرامة يا ${userName}.` }] }
                     ]
                 });
 
-                // 🔥 تحضير الرسالة (نص + صورة إذا وجدت)
+                // Prepare Message (Text + Image)
                 let messageParts = [];
                 if (prompt) messageParts.push({ text: prompt });
-                
                 if (image) {
-                    // image خاصها تكون base64 string (بلا header data:image/...)
                     const base64Data = image.split(',')[1] || image;
                     messageParts.push({
                         inlineData: {
-                            mimeType: "image/jpeg", // نفترض JPEG أو نقدرو نجيبوه ديناميكيا
+                            mimeType: "image/jpeg",
                             data: base64Data
                         }
                     });
@@ -149,56 +146,68 @@ export default async function handler(req, res) {
 
                 const result = await chat.sendMessageStream(messageParts);
                 
-                // === STREAM LOGIC (Event Loop) ===
+                // === STREAM LOOP (The Brain) ===
                 for await (const chunk of result.stream) {
+                    
+                    // A. Check for Tool Calls (The Graph)
                     const calls = chunk.functionCalls();
                     if (calls && calls.length > 0) {
                         const call = calls[0];
                         if (call.name === "render_math_graph") {
                             const svgCode = call.args.svg_code;
                             
+                            // 1. Send Visual Event to Frontend
                             res.write(JSON.stringify({
                                 type: "visual",
                                 data: { type: "SVG", code: svgCode },
-                                gamification: { xp: 20 }
+                                gamification: { xp: 50 } // Bonus XP for graphs
                             }) + "\n");
 
+                            // 2. Tell Gemini "Done, now explain it"
                             const result2 = await chat.sendMessageStream([{
                                 functionResponse: {
                                     name: "render_math_graph",
-                                    response: { status: "success", content: "Graph rendered." }
+                                    response: { status: "success", content: "Graph rendered on screen." }
                                 }
                             }]);
 
+                            // 3. Stream the explanation
                             for await (const chunk2 of result2.stream) {
                                 const text2 = chunk2.text();
                                 if (text2) res.write(JSON.stringify({ type: "text", content: text2 }) + "\n");
                             }
                         }
-                    } else {
+                    } 
+                    
+                    // B. Normal Text
+                    else {
                         const text = chunk.text();
                         if (text) res.write(JSON.stringify({ type: "text", content: text }) + "\n");
                     }
                 }
 
                 success = true;
-                break;
+                break; // Exit loop on success
 
             } catch (innerError) {
-                if (innerError.message.includes("429")) await new Promise(r => setTimeout(r, 1000));
+                console.error(`Model ${modelName} failed:`, innerError.message);
+                // If it's a rate limit or overload, wait a bit and try next model
+                if (innerError.message.includes("429") || innerError.message.includes("503")) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
                 continue;
             }
         }
 
-        if (!success) throw new Error("All models failed.");
+        if (!success) throw new Error("All models failed after retry.");
         
         res.write(JSON.stringify({ type: "done" }) + "\n");
         res.end();
 
     } catch (error) {
         console.error("Critical Error:", error);
-        res.write(JSON.stringify({ type: "error", message: "عذراً، وقع خطأ بسيط." }) + "\n");
+        res.write(JSON.stringify({ type: "error", message: "عذراً، وقع خطأ في الاتصال." }) + "\n");
         res.end();
     }
 }
-// IKED Engine: Ready for Launch 🚀 (v2026.05)
+// IKED Engine: Final Fix v2026.06 (Anti-Hallucination) 🚀
