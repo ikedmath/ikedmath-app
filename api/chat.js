@@ -1,12 +1,12 @@
 /* =======================================================
-   IKED ENGINE v2026: DIAGNOSTIC MODE 🚑
-   Selected Model: gemini-2.0-flash (Best Balance)
-   Feature: Full Error Exposure (No hiding)
+   IKED ENGINE v2026: FUTURE PROOF (MULTI-MODEL FAILOVER) 💎
+   Architecture: Cascade Strategy
+   Primary: gemini-2.5-flash-lite
+   Fallback: gemini-flash-lite-latest
    ======================================================= */
 
-// 1. تمديد وقت السيرفر لـ 60 ثانية (ضروري للرسم)
 export const config = {
-    maxDuration: 60,
+    maxDuration: 60, // 60 Seconds Timeout
 };
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -18,7 +18,13 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// أداة الرسم (مبسطة وفعالة)
+// 1. لائحة الموديلات بالترتيب (من الأقوى للأضمن)
+const CANDIDATE_MODELS = [
+    "gemini-2.5-flash-lite",           // الخيار رقم 1: سرعة خيالية وكفاءة 2026
+    "gemini-flash-lite-latest",        // الخيار رقم 2: النسخة المستقرة دائماً
+    "gemini-2.0-flash-lite-preview-02-05" // الخيار رقم 3: نسخة احتياطية معروفة
+];
+
 const renderGraphTool = {
     functionDeclarations: [
         {
@@ -66,93 +72,114 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) { 
-        res.write(JSON.stringify({ type: "error", message: "MISSING_API_KEY: Check Vercel Envs" }) + "\n"); 
+        res.write(JSON.stringify({ type: "error", message: "MISSING_API_KEY" }) + "\n"); 
         res.end(); return; 
     }
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        
-        // 🏆 الاختيار الأفضل بلا منازع: gemini-2.0-flash
-        const modelName = "gemini-2.0-flash";
-
         const userName = userProfile?.name || "Student";
-        const model = genAI.getGenerativeModel({ 
-            model: modelName,
-            tools: [renderGraphTool],
-            toolConfig: { functionCallingConfig: { mode: "AUTO" } },
-            safetySettings: safetySettings,
-        }, { apiVersion: 'v1beta' });
-
-        const systemInstruction = `
-            You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
-            User: ${userName}.
-            
-            🚨 PROTOCOL:
-            1. **NO HALLUCINATIONS:** Never output python code or "SQLAlchemy".
-            2. **DRAWING:** If asked to plot/draw, call 'render_math_graph' immediately.
-            3. **CONTEXT:** Ignore [HISTORY] tags in your output.
-            4. **LANG:** Moroccan Darija.
-        `;
-
-        const chat = model.startChat({
-            history: [
-                { role: "user", parts: [{ text: systemInstruction }] },
-                { role: "model", parts: [{ text: "OK." }] }
-            ]
-        });
-
-        let messageParts = [];
-        if (prompt) messageParts.push({ text: prompt });
-        if (image) {
-            const base64Data = image.split(',')[1] || image;
-            messageParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
-        }
-
-        const result = await chat.sendMessageStream(messageParts);
         
-        for await (const chunk of result.stream) {
-            const calls = chunk.functionCalls();
-            if (calls && calls.length > 0) {
-                const call = calls[0];
-                if (call.name === "render_math_graph") {
-                    const svgCode = call.args.svg_code;
+        let success = false;
+        let lastError = null;
+
+        // 🛑 Loop of Survival: نجربو الموديلات واحد بواحد
+        for (const modelName of CANDIDATE_MODELS) {
+            try {
+                // console.log(`Trying model: ${modelName}...`); // (Optional logging)
+
+                const model = genAI.getGenerativeModel({ 
+                    model: modelName,
+                    tools: [renderGraphTool],
+                    toolConfig: { functionCallingConfig: { mode: "AUTO" } },
+                    safetySettings: safetySettings,
+                }, { apiVersion: 'v1beta' });
+
+                const systemInstruction = `
+                    You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
+                    Current User: ${userName}.
                     
-                    res.write(JSON.stringify({
-                        type: "visual",
-                        data: { type: "SVG", code: svgCode },
-                        gamification: { xp: 50 }
-                    }) + "\n");
+                    🚨 PROTOCOL (2026 Edition):
+                    1. **No Hallucinations:** Never output python code or generic definitions.
+                    2. **Visuals:** Use 'render_math_graph' tool for ALL plots/drawings.
+                    3. **Context:** Ignore [HISTORY] tags in output.
+                    4. **Lang:** Moroccan Darija (Arabic script).
+                `;
 
-                    const result2 = await chat.sendMessageStream([{
-                        functionResponse: {
-                            name: "render_math_graph",
-                            response: { status: "success", content: "Graph rendered." }
+                const chat = model.startChat({
+                    history: [
+                        { role: "user", parts: [{ text: systemInstruction }] },
+                        { role: "model", parts: [{ text: "مفهوم. أنا واجد." }] }
+                    ]
+                });
+
+                let messageParts = [];
+                if (prompt) messageParts.push({ text: prompt });
+                if (image) {
+                    const base64Data = image.split(',')[1] || image;
+                    messageParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
+                }
+
+                const result = await chat.sendMessageStream(messageParts);
+                
+                // إلى وصلنا لهنا، يعني الموديل خدام والاتصال داز
+                for await (const chunk of result.stream) {
+                    const calls = chunk.functionCalls();
+                    if (calls && calls.length > 0) {
+                        const call = calls[0];
+                        if (call.name === "render_math_graph") {
+                            const svgCode = call.args.svg_code;
+                            res.write(JSON.stringify({
+                                type: "visual",
+                                data: { type: "SVG", code: svgCode },
+                                gamification: { xp: 50 }
+                            }) + "\n");
+
+                            const result2 = await chat.sendMessageStream([{
+                                functionResponse: {
+                                    name: "render_math_graph",
+                                    response: { status: "success", content: "Graph rendered." }
+                                }
+                            }]);
+                            for await (const chunk2 of result2.stream) {
+                                const text2 = chunk2.text();
+                                if (text2) res.write(JSON.stringify({ type: "text", content: text2 }) + "\n");
+                            }
                         }
-                    }]);
-
-                    for await (const chunk2 of result2.stream) {
-                        const text2 = chunk2.text();
-                        if (text2) res.write(JSON.stringify({ type: "text", content: text2 }) + "\n");
+                    } else {
+                        const text = chunk.text();
+                        if (text) res.write(JSON.stringify({ type: "text", content: text }) + "\n");
                     }
                 }
-            } else {
-                const text = chunk.text();
-                if (text) res.write(JSON.stringify({ type: "text", content: text }) + "\n");
+
+                success = true;
+                break; // صافي خدمنا، نخرجو من الحلقة
+
+            } catch (innerError) {
+                // هادي هي قوة المبرمج: إلا فشل موديل، كندوزو للي موراه
+                lastError = innerError;
+                console.warn(`Model ${modelName} failed: ${innerError.message}`);
+                
+                // إلا كان المشكل 429 (Quota) أو 503 (Overload)، نكملو للموديل التالي
+                if (innerError.message.includes("429") || innerError.message.includes("503") || innerError.message.includes("404")) {
+                    continue; 
+                } else {
+                    // إلا كان خطأ فادح آخر، نوقفو
+                    throw innerError;
+                }
             }
+        }
+
+        if (!success) {
+            throw new Error(`All 2026 models failed. Last error: ${lastError?.message}`);
         }
 
         res.write(JSON.stringify({ type: "done" }) + "\n");
         res.end();
 
     } catch (error) {
-        console.error("CRITICAL ERROR:", error);
-        
-        // 🚑 DIAGNOSTIC MODE: هنا كنقولو ليك "باش مريض" بالضبط
-        // غايطلع ليك الميساج الحقيقي فالشات (مثلاً: 504 Timeout, Quota Exceeded...)
-        const diagnosticMsg = `DIAGNOSTIC: ${error.message}`;
-        
-        res.write(JSON.stringify({ type: "error", message: diagnosticMsg }) + "\n");
+        console.error("CRITICAL ENGINE FAILURE:", error);
+        res.write(JSON.stringify({ type: "error", message: `System Error: ${error.message}` }) + "\n");
         res.end();
     }
 }
