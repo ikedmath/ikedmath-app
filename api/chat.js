@@ -1,7 +1,7 @@
 /* =======================================================
-   IKED ENGINE v2026: HYBRID LOGIC (BRAIN ONLY) 🧠
+   IKED ENGINE v2026: ELITE MODELS ONLY (NO 1.5) 💎
    Architecture: Backend Extracts Math -> Frontend Renders
-   Models: 2026 Fast Series (Failover Strategy)
+   Models: Strictly High-End (2.0 & 2.5 Only)
    ======================================================= */
 
 export const config = {
@@ -17,14 +17,14 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// 1. لائحة الموديلات السريعة (نفس القائمة المفضلة لديك)
+// 🛑 لائحة النخبة فقط (تم حذف 1.5 نهائياً)
 const CANDIDATE_MODELS = [
-    "gemini-2.5-flash-lite",           
-    "gemini-flash-lite-latest",        
-    "gemini-2.0-flash-lite-preview-02-05" 
+    "gemini-2.0-flash",                    // الخيار 1: القوة والاستقرار
+    "gemini-2.0-flash-lite-preview-02-05", // الخيار 2: السرعة (من قائمتك)
+    "gemini-2.5-flash-lite"                // الخيار 3: الجيل الجديد (من قائمتك)
 ];
 
-// 2. الأداة الجديدة: استخراج المعادلة فقط (بدون رسم)
+// الأداة: استخراج المعادلة فقط
 const mathPlotTool = {
     functionDeclarations: [
         {
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         let success = false;
         let lastError = null;
 
-        // 🛑 Loop of Survival: نجربو الموديلات واحد بواحد
+        // 🛑 Loop of Survival (Exclusive 2026 Models)
         for (const modelName of CANDIDATE_MODELS) {
             try {
                 const model = genAI.getGenerativeModel({ 
@@ -127,15 +127,15 @@ export default async function handler(req, res) {
                     if (calls && calls.length > 0) {
                         const call = calls[0];
                         if (call.name === "plot_function") {
-                            // 🚀 هنا التغيير الكبير: نرسل أمراً للمحرك (Frontend)
+                            // إرسال أمر الرسم للمحرك
                             res.write(JSON.stringify({
-                                type: "command",  // نوع جديد خاص بالأوامر
+                                type: "command",
                                 cmd: "PLOT",
                                 data: call.args,
                                 gamification: { xp: 20 }
                             }) + "\n");
 
-                            // نخبر الموديل أننا أرسلنا الأمر بنجاح
+                            // إخبار الموديل بالنجاح
                             const result2 = await chat.sendMessageStream([{
                                 functionResponse: {
                                     name: "plot_function",
@@ -159,17 +159,14 @@ export default async function handler(req, res) {
 
             } catch (innerError) {
                 lastError = innerError;
-                // Failover logic
-                if (innerError.message.includes("429") || innerError.message.includes("503") || innerError.message.includes("404")) {
-                    continue; 
-                } else {
-                    throw innerError;
-                }
+                console.warn(`Model ${modelName} failed, switching...`);
+                // الفلترة: إذا كان الموديل غير موجود (404) ننتقل للتالي فوراً
+                continue; 
             }
         }
 
         if (!success) {
-            throw new Error(`All models failed. Last error: ${lastError?.message}`);
+            throw new Error(`All elite models failed. Check API Key. Last Error: ${lastError?.message}`);
         }
 
         res.write(JSON.stringify({ type: "done" }) + "\n");
