@@ -1,11 +1,11 @@
 /* =======================================================
-   IKED ENGINE v2026: UNSTOPPABLE ELITE 💎
-   Strategy: High Quota Priority -> Failover
-   Models: 2.0 Flash (High Limit) -> 2.0 Exp (Backup)
+   IKED ENGINE v2026: CLEAN ELITE (NO 404 ERRORS) 💎
+   Models: 2.0 Flash (Stable) -> 2.0 Flash Lite (Backup)
+   Logic: Backend Extracts Math -> Frontend Renders
    ======================================================= */
 
 export const config = {
-    maxDuration: 60,
+    maxDuration: 60, // 60 Seconds Timeout
 };
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -17,28 +17,28 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// 🛑 اللائحة الذكية (تفادينا 2.5 حيت فيه 20 طلب فقط)
+// 🛑 اللائحة النظيفة (حيدنا exp وحيدنا 1.5 وحيدنا التواريخ القديمة)
 const CANDIDATE_MODELS = [
-    "gemini-2.0-flash",        // 1. العملاق: كوطا كبيرة (1500/يوم) + ذكاء عالي
-    "gemini-2.0-flash-001",    // 2. البديل الرسمي: نفس القوة
-    "gemini-2.0-flash-exp",    // 3. التجريبي: كاحتياط أخير
+    "gemini-2.0-flash",          // 1. العملاق المستقر (1500 request/day)
+    "gemini-2.0-flash-lite",     // 2. البديل السريع (موجود رسمياً)
+    "gemini-2.0-flash-001"       // 3. نسخة أخرى من الفلاش للضمان
 ];
 
-// أداة استخراج المعادلة (Hybrid Brain)
+// الأداة: استخراج المعادلة فقط
 const mathPlotTool = {
     functionDeclarations: [
         {
             name: "plot_function",
-            description: "Extracts the mathematical expression for the client engine. Call this for ANY drawing task.",
+            description: "Extracts the mathematical expression to be plotted by the client engine. Call this whenever the user asks to draw a function.",
             parameters: {
                 type: "OBJECT",
                 properties: {
                     expression: { 
                         type: "STRING", 
-                        description: "JS Math expression (e.g. 'x**2', 'Math.sin(x)'). Variable must be 'x'." 
+                        description: "The math expression in JavaScript format (e.g. 'x**2', 'Math.sin(x)', 'x + 5'). Use 'x' as the variable." 
                     },
-                    xMin: { type: "NUMBER", description: "Default -10" },
-                    xMax: { type: "NUMBER", description: "Default 10" }
+                    xMin: { type: "NUMBER", description: "Start of x domain (default -10)" },
+                    xMax: { type: "NUMBER", description: "End of x domain (default 10)" }
                 },
                 required: ["expression"]
             }
@@ -96,18 +96,20 @@ export default async function handler(req, res) {
                 }, { apiVersion: 'v1beta' });
 
                 const systemInstruction = `
-                    You are **IKED**, an elite Math Tutor for 2 Bac SM. User: ${userName}.
+                    You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
+                    Current User: ${userName}.
                     
-                    🚨 RULES:
-                    1. **Task:** If user wants to draw/plot, extract formula & CALL 'plot_function'.
-                    2. **No Code:** Do not write Python/Markdown code.
-                    3. **Lang:** Moroccan Darija.
+                    🚨 PROTOCOL (HYBRID ENGINE):
+                    1. **Drawing Task:** If asked to draw/plot, extract the formula and CALL 'plot_function'. DO NOT generate SVG or ASCII art.
+                    2. **Example:** "Draw x squared" -> Call plot_function({ expression: "x**2" }).
+                    3. **No Code:** Do not write python code or markdown blocks.
+                    4. **Lang:** Moroccan Darija (Arabic script).
                 `;
 
                 const chat = model.startChat({
                     history: [
                         { role: "user", parts: [{ text: systemInstruction }] },
-                        { role: "model", parts: [{ text: "مفهوم. سأستخدم المحرك للرسم." }] }
+                        { role: "model", parts: [{ text: "مفهوم. سأقوم باستخراج المعادلات ليرسمها المحرك." }] }
                     ]
                 });
 
@@ -125,7 +127,7 @@ export default async function handler(req, res) {
                     if (calls && calls.length > 0) {
                         const call = calls[0];
                         if (call.name === "plot_function") {
-                            // إرسال أمر الرسم (Command)
+                            // إرسال أمر الرسم للمحرك
                             res.write(JSON.stringify({
                                 type: "command",
                                 cmd: "PLOT",
@@ -133,10 +135,11 @@ export default async function handler(req, res) {
                                 gamification: { xp: 20 }
                             }) + "\n");
 
+                            // إخبار الموديل بالنجاح
                             const result2 = await chat.sendMessageStream([{
                                 functionResponse: {
                                     name: "plot_function",
-                                    response: { status: "success", content: "Graph command sent." }
+                                    response: { status: "success", content: "Command sent to rendering engine." }
                                 }
                             }]);
                             
@@ -156,15 +159,15 @@ export default async function handler(req, res) {
 
             } catch (innerError) {
                 lastError = innerError;
-                // إذا كان الخطأ هو Quota (429) أو غير موجود (404)، ندوزو للموديل التالي
                 console.warn(`Model ${modelName} failed (${innerError.message}), switching...`);
+                // الفلترة: إذا كان 404 (مكينش) أو 429 (كوطا) ندوزو للي موراه
                 continue; 
             }
         }
 
         if (!success) {
-            // رسالة واضحة للمستخدم
-            throw new Error(`All models exhausted. Please use a NEW API Key. Last Error: ${lastError?.message}`);
+            // هنا كنرجعو الخطأ الأصلي باش نعرفو المشكل فين
+            throw new Error(`All models failed. Last Error: ${lastError?.message}`);
         }
 
         res.write(JSON.stringify({ type: "done" }) + "\n");
