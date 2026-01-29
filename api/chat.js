@@ -1,10 +1,10 @@
 /* =======================================================
-   IKED ENGINE v2026: STABLE CORE (NO HALLUCINATIONS) 💎
-   Model: gemini-2.0-flash (The smartest & most stable)
-   Fixes: Anti-SQLAlchemy, Anti-Echo, Extended Timeout
+   IKED ENGINE v2026: DIAGNOSTIC MODE 🚑
+   Selected Model: gemini-2.0-flash (Best Balance)
+   Feature: Full Error Exposure (No hiding)
    ======================================================= */
 
-// 🔥 هاد السطر ضروري باش Vercel يصبر 60 ثانية فالرسم وما يعطيش Error
+// 1. تمديد وقت السيرفر لـ 60 ثانية (ضروري للرسم)
 export const config = {
     maxDuration: 60,
 };
@@ -18,7 +18,7 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// تعريف أداة الرسم بدقة باش يفهمها الموديل دغيا
+// أداة الرسم (مبسطة وفعالة)
 const renderGraphTool = {
     functionDeclarations: [
         {
@@ -46,7 +46,6 @@ const safetySettings = [
 ];
 
 export default async function handler(req, res) {
-    // إعدادات CORS
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -67,21 +66,17 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) { 
-        res.write(JSON.stringify({ type: "error", message: "API Key Error" }) + "\n"); 
+        res.write(JSON.stringify({ type: "error", message: "MISSING_API_KEY: Check Vercel Envs" }) + "\n"); 
         res.end(); return; 
     }
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
         
-        // 🛑 التغيير الحاسم: كنخدمو غير بـ gemini-2.0-flash
-        // حيت هو الوحيد اللي ذكي ومستقر من القائمة ديالك
-        // الموديلات الأخرى (lite/preview) هي اللي كتعطي SQLAlchemy
+        // 🏆 الاختيار الأفضل بلا منازع: gemini-2.0-flash
         const modelName = "gemini-2.0-flash";
 
         const userName = userProfile?.name || "Student";
-        const userXP = userProfile?.xp || 0;
-
         const model = genAI.getGenerativeModel({ 
             model: modelName,
             tools: [renderGraphTool],
@@ -89,37 +84,29 @@ export default async function handler(req, res) {
             safetySettings: safetySettings,
         }, { apiVersion: 'v1beta' });
 
-        // 🛑 تعليمات صارمة جداً باش ما يعاودش يدوخ
         const systemInstruction = `
             You are **IKED**, an elite Math Tutor for 2 Bac SM (Morocco).
-            Current User: ${userName}.
+            User: ${userName}.
             
-            🛑 RULES:
-            1. **Identity:** You are a helpful tutor. NEVER output random definitions (like SQLAlchemy or Python tutorials).
-            2. **Context:** The user prompt might contain "[HISTORY]". Do NOT repeat it in your output. Read it silently.
-            3. **Drawing:** If asked to draw/plot, IMMEDIATELY call 'render_math_graph'.
-            4. **No Code:** Do NOT write python code blocks.
-            5. **Language:** Moroccan Darija (Arabic script).
+            🚨 PROTOCOL:
+            1. **NO HALLUCINATIONS:** Never output python code or "SQLAlchemy".
+            2. **DRAWING:** If asked to plot/draw, call 'render_math_graph' immediately.
+            3. **CONTEXT:** Ignore [HISTORY] tags in your output.
+            4. **LANG:** Moroccan Darija.
         `;
 
         const chat = model.startChat({
             history: [
                 { role: "user", parts: [{ text: systemInstruction }] },
-                { role: "model", parts: [{ text: "فهمت. أنا IKED، مستعد نعاونك فالماط بالدارجة." }] }
+                { role: "model", parts: [{ text: "OK." }] }
             ]
         });
 
         let messageParts = [];
         if (prompt) messageParts.push({ text: prompt });
-        
         if (image) {
             const base64Data = image.split(',')[1] || image;
-            messageParts.push({
-                inlineData: {
-                    mimeType: "image/jpeg",
-                    data: base64Data
-                }
-            });
+            messageParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
         }
 
         const result = await chat.sendMessageStream(messageParts);
@@ -131,14 +118,12 @@ export default async function handler(req, res) {
                 if (call.name === "render_math_graph") {
                     const svgCode = call.args.svg_code;
                     
-                    // إرسال الرسم
                     res.write(JSON.stringify({
                         type: "visual",
                         data: { type: "SVG", code: svgCode },
                         gamification: { xp: 50 }
                     }) + "\n");
 
-                    // إخبار الموديل بأن الرسم تم بنجاح ليكمل الشرح
                     const result2 = await chat.sendMessageStream([{
                         functionResponse: {
                             name: "render_math_graph",
@@ -161,9 +146,13 @@ export default async function handler(req, res) {
         res.end();
 
     } catch (error) {
-        console.error("Critical Error:", error);
-        // رسالة خطأ واضحة
-        res.write(JSON.stringify({ type: "error", message: "تعذر الاتصال بالموديل. حاول مجدداً." }) + "\n");
+        console.error("CRITICAL ERROR:", error);
+        
+        // 🚑 DIAGNOSTIC MODE: هنا كنقولو ليك "باش مريض" بالضبط
+        // غايطلع ليك الميساج الحقيقي فالشات (مثلاً: 504 Timeout, Quota Exceeded...)
+        const diagnosticMsg = `DIAGNOSTIC: ${error.message}`;
+        
+        res.write(JSON.stringify({ type: "error", message: diagnosticMsg }) + "\n");
         res.end();
     }
 }
