@@ -1,11 +1,11 @@
 /* =======================================================
-   IKED ENGINE v2026: QUOTA BYPASS EDITION 💎
-   Models: Experimental & Lite Previews (Avoids blocked models)
-   Strategy: gemini-exp-1206 -> gemini-2.0-flash-lite-preview
+   IKED ENGINE v2026: THE SURVIVOR EDITION 💎
+   Target: Working 2.0 Models on Free Tier
+   Strategy: Flash Stable -> Lite Snapshot -> Experimental
    ======================================================= */
 
 export const config = {
-    maxDuration: 60,
+    maxDuration: 60, // 60 Seconds Timeout
 };
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -17,14 +17,14 @@ const ALLOWED_ORIGINS = [
     "https://ikedmath-app.vercel.app"
 ];
 
-// 🛑 لائحة "الاختراق": موديلات قوية ولكن ماشي هي اللي عليها الضغط
+// 🛑 اللائحة المختارة بعناية من قائمتك (الأكثر احتمالاً للعمل)
 const CANDIDATE_MODELS = [
-    "gemini-exp-1206",                 // 1. موديل دجنبر القوي (Gemini 2.0 Beta) - غالباً الكوطا ديالو خاوية
-    "gemini-2.0-flash-lite-preview",   // 2. النسخة الخفيفة (بدون تاريخ محدد لتفادي 404)
-    "gemini-2.0-flash-lite-001"        // 3. بديل آخر من القائمة
+    "gemini-2.0-flash",                     // 1. المحاولة الأولى: الموديل القياسي القوي
+    "gemini-2.0-flash-lite-preview-02-05", // 2. المحاولة الثانية: النسخة الخفيفة المحدثة
+    "gemini-exp-1206"                       // 3. المحاولة الثالثة: الموديل التجريبي (الجوكر)
 ];
 
-// الأداة: استخراج المعادلة فقط
+// الأداة: استخراج المعادلة فقط (Backend Logic)
 const mathPlotTool = {
     functionDeclarations: [
         {
@@ -54,6 +54,7 @@ const safetySettings = [
 ];
 
 export default async function handler(req, res) {
+    // 1. إعدادات CORS
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -85,7 +86,7 @@ export default async function handler(req, res) {
         let success = false;
         let lastError = null;
 
-        // 🛑 Loop of Survival
+        // 🛑 Loop of Survival: تجربة الموديلات بالترتيب
         for (const modelName of CANDIDATE_MODELS) {
             try {
                 const model = genAI.getGenerativeModel({ 
@@ -127,7 +128,7 @@ export default async function handler(req, res) {
                     if (calls && calls.length > 0) {
                         const call = calls[0];
                         if (call.name === "plot_function") {
-                            // إرسال أمر الرسم للمحرك
+                            // إرسال أمر الرسم للمحرك (Frontend)
                             res.write(JSON.stringify({
                                 type: "command",
                                 cmd: "PLOT",
@@ -135,7 +136,7 @@ export default async function handler(req, res) {
                                 gamification: { xp: 20 }
                             }) + "\n");
 
-                            // إخبار الموديل بالنجاح
+                            // إخبار الموديل بالنجاح ليكمل الشرح
                             const result2 = await chat.sendMessageStream([{
                                 functionResponse: {
                                     name: "plot_function",
@@ -155,17 +156,19 @@ export default async function handler(req, res) {
                 }
 
                 success = true;
-                break; 
+                break; // الموديل خدم، نخرج من الحلقة
 
             } catch (innerError) {
                 lastError = innerError;
-                // الفلترة: ندوزو للموديل التالي
+                // إذا فشل الموديل (404 أو 429)، نسجلو الخطأ وندوزو للي موراه
+                console.warn(`Model ${modelName} failed, switching to next candidate...`);
                 continue; 
             }
         }
 
         if (!success) {
-            throw new Error(`All High-End models blocked (Quota 0 or 429). Last Error: ${lastError?.message}`);
+            // إذا فشلوا كاملين، نرجعو رسالة واضحة
+            throw new Error(`All High-End models failed. Last Error: ${lastError?.message}`);
         }
 
         res.write(JSON.stringify({ type: "done" }) + "\n");
